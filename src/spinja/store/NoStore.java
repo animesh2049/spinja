@@ -15,6 +15,7 @@
 package spinja.store;
 
 import spinja.store.hash.HashAlgorithm;
+import spinja.store.hash.JenkinsHash;
 
 /**
  * The NoStore is a store that stores no real states. It therefore will always give false positives.

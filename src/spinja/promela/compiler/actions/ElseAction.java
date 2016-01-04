@@ -33,6 +33,7 @@ public class ElseAction extends Action {
 		return "false";
 	}
 
+	@SuppressWarnings("unused")
 	@Override
 	public void printTakeStatement(final StringWriter w) throws ParseException {
 		// Does nothing

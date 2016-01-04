@@ -31,7 +31,7 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 
 		@Override
 		public void take() throws ValidationException {
-			toggle = true;
+			toggle = 1;
 			seed = storeModel();
 		}
 
@@ -42,14 +42,14 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 
 		@Override
 		public void undo() {
-			toggle = false;
+			toggle = 0;
 			seed = null;
 		}
 	};
 
 	private static final long serialVersionUID = -6333219782324980671L;
 
-	private boolean toggle;
+	private int toggle;
 
 	private byte[] seed;
 
@@ -57,7 +57,7 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 			final boolean errorExceedDepth, final boolean checkForDeadlocks, final int maxErrors,
 			final TransitionCalculator<M, T> nextTransition) {
 		super(model, store, stackSize, errorExceedDepth, checkForDeadlocks, maxErrors, nextTransition);
-		toggle = false;
+		toggle = 0;
 		seed = null;
 	}
 
@@ -74,7 +74,7 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 			return null;
 		} else {
 			T next = nextTransition.next(model, (T) last);
-			if (next == null && last != null && !toggle && conditionHolds()) {
+			if (next == null && last != null && toggle==0 && conditionHolds()) {
 				return enterNestedSearch;
 			}
 			return next;
@@ -91,11 +91,11 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 
 	@Override
 	protected void takeTransition(final Transition next) throws SpinJaException {
-		final boolean toggled = toggle;
+		final int toggled = toggle;
 
 		super.takeTransition(next);
 
-		if (toggled && conditionHolds()) {
+		if (toggled==1 && conditionHolds()) {
 			// If in nested search check for the cycle
 			byte[] curr = storeModel();
 			if (Arrays.equals(curr, seed)) {

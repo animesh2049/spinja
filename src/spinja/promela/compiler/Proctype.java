@@ -130,6 +130,7 @@ public class Proctype implements VariableContainer {
 		varStore.addVariable(var);
 		if (isArgument) {
 			arguments.add(var);
+			var.setWritten(true);
 		}
 	}
 
@@ -166,6 +167,7 @@ public class Proctype implements VariableContainer {
 		generateConstructor(w);
 		generateStorable(w);
 		generateToString(w);
+		generateGetChannelCount(w);
 
 		if (enabler != null) {
 			// TODO
@@ -176,15 +178,10 @@ public class Proctype implements VariableContainer {
 	}
 
 	protected void generateConstructor(final StringWriter w) throws ParseException {
-		w.appendLine("public ", getName(), "(boolean decoding) {").indent();
+		w.appendLine("public ", getName(), "(boolean decoding, int pid) {").indent();
 		{
-			if (specification.getNever() == this) {
-				w.appendLine("super(", getSpecification().getName(), "Model.this, new State[",
-						automaton.size(), "], ", automaton.getStartState().getStateId(), ", 0);");
-			} else {
-				w.appendLine("super(", getSpecification().getName(), "Model.this, new State[",
-						automaton.size(), "], ", automaton.getStartState().getStateId(), ");");
-			}
+			w.appendLine("super(", getSpecification().getName(), "Model.this, pid, new State[",
+				automaton.size(), "], ", automaton.getStartState().getStateId(), ");");
 			w.appendLine();
 			// Generate the table
 			automaton.generateTable(w);
@@ -194,7 +191,7 @@ public class Proctype implements VariableContainer {
 		w.appendLine("public ", getName(), "(", getArgs(), ") throws ValidationException {")
 				.indent();
 		{
-			w.appendLine("this(false);");
+			w.appendLine("this(false, _nrProcs);");
 			w.appendLine();
 			// Initialize default values for non arguments
 			for (final Variable var : varStore.getVariables()) {
@@ -216,7 +213,8 @@ public class Proctype implements VariableContainer {
 
 	protected void generateLocalVars(final StringWriter w) {
 		for (final Variable var : varStore.getVariables()) {
-			w.appendLine("protected ", var.getType().getJavaName(), (var.getArraySize() > 1 ? "[]" : ""), 
+			w.appendLine("protected ", var.getType().getJavaName(), (var.getArraySize() > 1	? "[]"
+																							: ""),
 				" ", var.getName(), ";");
 		}
 		w.appendLine();
@@ -285,6 +283,14 @@ public class Proctype implements VariableContainer {
 		w.outdent();
 		w.appendLine("}");
 		w.appendLine();
+	}
+
+	protected void generateGetChannelCount(final StringWriter w) {
+		w.appendLine("public int getChannelCount() {");
+		w.indent();
+		w.appendLine("return ", varStore.getChannelCount(), ";");
+		w.outdent();
+		w.appendLine("}");
 	}
 
 	protected String getArgs() {

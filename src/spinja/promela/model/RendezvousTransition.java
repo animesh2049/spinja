@@ -93,6 +93,7 @@ public class RendezvousTransition extends PromelaTransition {
 	}
 
 	@Override
+	@SuppressWarnings("unused")
 	public void undo() {
 		model.activateTransitionListener(false);
 

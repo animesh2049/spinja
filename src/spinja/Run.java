@@ -106,7 +106,7 @@ public class Run extends Thread {
 		"prints the version number and exits");
 
 	private final NumberOption hashEntries = new NumberOption('w',
-		"sets the number of entries in the hash table to 2^N", 21, 3, 31);
+		"sets the number of entries in the hash table to 2^N", 21, 3, 30);
 
 	private byte done = 0;
 
@@ -126,8 +126,9 @@ public class Run extends Thread {
 	}
 
 	public void parseArguments(final String[] args, final String name) {
+		final Version version = new Version();
 		final String  shortd  = 
-			"SpinJa Model Checker - version " + Version.VERSION + " (" + Version.DATE + ")\n" +
+			"SpinJa Model Checker - version " + version.VERSION + " (" + version.DATE + ")\n" +
 			"(C) University of Twente, Formal Methods and Tools group";
 		final String  longd   = 
 			"SpinJa Model Checker is a (generated) Java program which verifies\n" +
@@ -281,8 +282,8 @@ public class Run extends Thread {
 				model, nextTransition);
 		} else if (impl.isSet("BFS")) {
 			algo = new BreadthFirstSearch<ConcurrentModel<PromelaTransition>, PromelaTransition>(
-				model, store, errorExceedDepth.isSet(), nrErrors.getValue(),
-				!ignoreInvalidEnd.isSet(), nextTransition);
+				model, store, !ignoreInvalidEnd.isSet(), nrErrors.getValue(),
+				errorExceedDepth.isSet(), nextTransition);
 		} else if (concurrent.getValue() > 1) {
 			algo = new ConcurrentBFSearch<ConcurrentModel<PromelaTransition>, PromelaTransition>(
 				concurrent.getValue(), model, store, !ignoreInvalidEnd.isSet(),

@@ -23,10 +23,12 @@ import java.util.LinkedList;
 import java.util.List;
 
 import spinja.exceptions.SpinJaException;
+import spinja.model.Condition;
 import spinja.model.Model;
 import spinja.model.Transition;
 import spinja.store.StateStore;
 import spinja.util.ByteArrayStorage;
+import spinja.util.DataReader;
 
 public class BreadthFirstSearch<M extends Model<T>, T extends Transition> extends
 	SearchAlgorithm<M, T> {
@@ -35,8 +37,6 @@ public class BreadthFirstSearch<M extends Model<T>, T extends Transition> extend
 	private final Queue queue;
 
 	protected Queue.State fromState;
-
-	private int depth;
 
 	protected T last;
 
@@ -52,7 +52,6 @@ public class BreadthFirstSearch<M extends Model<T>, T extends Transition> extend
 		final TransitionCalculator<M, T> nextTransition) {
 		super(model, store, checkForDeadlocks, maxErrors, errorExceedDepth, nextTransition);
 		this.queue = queue;
-		depth = 0;
 	}
 
 	@Override
@@ -78,7 +77,7 @@ public class BreadthFirstSearch<M extends Model<T>, T extends Transition> extend
 
 	@Override
 	public int getDepth() {
-		return depth;
+		return queue.depth();
 	}
 	
 	@Override
@@ -89,7 +88,7 @@ public class BreadthFirstSearch<M extends Model<T>, T extends Transition> extend
 	@Override
 	protected T nextTransition() {
 		final T next = nextTransition.next(model, last);
-		last = next;
+		last = next == null ? last : next;
 		return next;
 	}
 
@@ -136,6 +135,7 @@ public class BreadthFirstSearch<M extends Model<T>, T extends Transition> extend
 	@Override
 	protected void stateDone() {
 		fromState = null;
+		last = null;
 	}
 
 	@Override

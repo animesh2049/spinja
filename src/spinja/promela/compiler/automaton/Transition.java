@@ -17,8 +17,11 @@ package spinja.promela.compiler.automaton;
 import java.util.Collections;
 import java.util.Iterator;
 
+import org.omg.CORBA._PolicyStub;
+
 import spinja.promela.compiler.actions.Action;
 import spinja.promela.compiler.actions.ActionContainer;
+import spinja.promela.compiler.actions.ChannelReadAction;
 import spinja.promela.compiler.actions.ChannelSendAction;
 import spinja.promela.compiler.parser.ParseException;
 import spinja.util.StringWriter;
@@ -294,6 +297,15 @@ public abstract class Transition implements Iterable<Action>, ActionContainer {
 			w.removePostfix().outdent().appendLine("};");
 		}
 		w.outdent().appendLine("}");
+		
+		if (getText().indexOf("timeout") >= 0) {
+			w.appendLine("public final boolean canTimeout() {").indent();
+			w.appendLine("return true;");
+			w.outdent().appendLine("}");
+			w.appendLine("public final boolean isLocal() {").indent();
+			w.appendLine("return false;");
+			w.outdent().appendLine("}");
+		}
 		w.outdent().appendLine("}");
 	}
 

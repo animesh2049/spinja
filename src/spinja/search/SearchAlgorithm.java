@@ -14,16 +14,13 @@
 
 package spinja.search;
 
-import static spinja.search.Message.DEADLOCK;
-import static spinja.search.Message.DUPLICATE_STATE;
-import static spinja.search.Message.EXCEED_DEPTH_ERROR;
-import static spinja.search.Message.EXCEED_DEPTH_WARNING;
-import static spinja.search.Message.NO_MORE_TRANSITIONS;
-import static spinja.search.Message.TRANS_ERROR;
+import static spinja.search.Message.*;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryNotificationInfo;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -34,8 +31,10 @@ import spinja.exceptions.SpinJaException;
 import spinja.model.Condition;
 import spinja.model.Model;
 import spinja.model.Transition;
+import spinja.promela.model.PromelaTransition;
 import spinja.store.StateStore;
 import spinja.store.hash.HashAlgorithm;
+import spinja.store.hash.HashAlgorithm.HashGenerator;
 import spinja.util.ByteArrayStorage;
 
 /**
@@ -49,8 +48,6 @@ import spinja.util.ByteArrayStorage;
 public abstract class SearchAlgorithm<M extends Model<T>, 
 									  T extends Transition> extends Algoritm
 	implements NotificationListener, NotificationFilter {
-
-	private static final long serialVersionUID = -9221923281786933752L;
 
 	protected final M model;
 
@@ -267,7 +264,18 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 
 			// Make sure that the state matches the model
 			assert checkModelState();
-			final Transition next = nextTransition();
+
+			// Remember the largest state size and the largest depth that is
+			// reached
+			if (state.length > maxSize) {
+				maxSize = state.length;
+			}
+
+			if (getDepth() > maxDepth) {
+				maxDepth = getDepth();
+			}			
+
+			 Transition next = nextTransition();
 
 			if (next == null) {
 				if (checkForDeadlocks && !model.conditionHolds(Condition.END_STATE)
@@ -281,6 +289,16 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 			}
 
 			try { // Take the next transition and check for errors
+//				if(model.conditionHolds(Condition.ACCEPT_STATE)){
+//					System.out.println("##########From##"+Arrays.hashCode(state)+" Transaction Id:"+next.getId()+" Accep Cycle:"+model.conditionHolds(Condition.ACCEPT_STATE));
+//					}else{
+//						System.out.println("#########From###"+Arrays.hashCode(state)+" Transaction Id:"+next.getId());
+//					}
+				System.out.println(Arrays.hashCode(storeModel())+"#####Transition#######"+next);
+//				if(Arrays.hashCode(state)==1529929885){
+//					next=getTotalTransitions(null).get(0);
+//				}
+				//getTotalTransitions(next);
 				takeTransition(next);
 			} catch (final SpinJaException ex) {
 				report(TRANS_ERROR, ex.getMessage());
@@ -288,7 +306,7 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 			}
 
 			state = storeModel();
-
+			System.out.println("##########TO##"+Arrays.hashCode(state));
 			// If the state should be stored, try to store it
 			if (model.conditionHolds(Condition.SHOULD_STORE_STATE)) {
 				identifier = store.addState(state);
@@ -320,17 +338,6 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 					printedDepthWarning = true;
 				}
 				undoTransition();
-				continue;
-			}
-
-			// Remember the largest state size and the largest depth that is
-			// reached
-			if (state.length > maxSize) {
-				maxSize = state.length;
-			}
-
-			if (getDepth() - 1 > maxDepth) {
-				maxDepth = getDepth() - 1;
 			}
 		}
 		freeMemory();
@@ -351,4 +358,18 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 	protected abstract void undoTransition();
 
 	public abstract SearchableStack getSearchableStack();
+	
+	public List<Transition>  getTotalTransitions(Transition last) {
+		//System.out.println("#####Transition#######"+last);
+		List<Transition> listTrans =new ArrayList<>();
+		while (true) {
+			last = model.nextTransition((T)last);
+			if (last == null)
+				break;
+			
+			listTrans.add(last);
+		}
+		System.out.println("#####Transition#######"+listTrans.size()+"  Trasn:#######"+listTrans);
+		return listTrans;
+	}
 }

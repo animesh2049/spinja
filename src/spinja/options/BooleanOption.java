@@ -27,6 +27,7 @@ public class BooleanOption extends Option {
 		return set;
 	}
 
+	@SuppressWarnings("unused")
 	@Override
 	public void parseOption(final String rest) {
 		set = true;
