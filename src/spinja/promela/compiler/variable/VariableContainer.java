@@ -48,5 +48,8 @@ public interface VariableContainer {
 	 * @return true when a variable with that name already exists or otherwise false.
 	 */
 	public boolean hasVariable(String name);
+	
+    public void addVariableMapping(String s, String v);
 
+    public String getVariableMapping(String s);
 }

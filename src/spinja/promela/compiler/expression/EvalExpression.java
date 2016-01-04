@@ -29,6 +29,10 @@ public class EvalExpression extends Expression {
 		this.expr = expr;
 	}
 
+	public Expression getExpression() {
+		return expr;
+	}
+
 	@Override
 	public String getBoolExpression() throws ParseException {
 		return expr.getBoolExpression();
@@ -45,12 +49,12 @@ public class EvalExpression extends Expression {
 	}
 
 	@Override
-	public VariableType getResultType() throws ParseException {
+	public VariableType getResultType() {
 		return expr.getResultType();
 	}
 
 	@Override
-	public String getSideEffect() throws ParseException {
+	public String getSideEffect() {
 		return expr.getSideEffect();
 	}
 

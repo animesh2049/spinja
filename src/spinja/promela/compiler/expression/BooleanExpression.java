@@ -31,6 +31,7 @@ import spinja.promela.compiler.variable.VariableType;
  * @author Marc de Jonge
  */
 public class BooleanExpression extends Expression {
+	@SuppressWarnings("unused")
 	private static final long serialVersionUID = -4022528945025403911L;
 
 	private final Expression ex1, ex2;
@@ -63,6 +64,17 @@ public class BooleanExpression extends Expression {
 		ex2 = right;
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (!(o instanceof BooleanExpression))
+			return false;
+		BooleanExpression ce = (BooleanExpression)o;
+		return getToken().kind == ce.getToken().kind && ex1.equals(ce.getExpr1()) &&
+				(ex2==null && ce.getExpr2()==null || ex2.equals(ce.getExpr2()));
+	}
+	
 	@Override
 	public String getBoolExpression() throws ParseException {
 		if (ex2 == null) {
@@ -102,9 +114,9 @@ public class BooleanExpression extends Expression {
 	}
 
 	@Override
-	public String getSideEffect() throws ParseException {
+	public String getSideEffect() {
 		if ((ex1.getSideEffect() != null) || ((ex2 != null) && (ex2.getSideEffect() != null))) {
-			throw new MyParseException("No sideeffects allowed in a boolean expression!", getToken());
+			return "Boolean expression has some side effect!";
 		}
 		return null;
 	}

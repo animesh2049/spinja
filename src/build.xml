@@ -2,7 +2,7 @@
 <project name="SpinJa" default="build" basedir=".">
 	<target name="init" description="Initializes the build variables">
 		<property name="name"           value="spinja" />
-		<property name="version"        value="0.9"  />
+		<property name="version"        value="0.9.3"  />
 
 		<property name="spinja"         value="spinja" />
 		<property name="spinja_parser"  value="spinja/promela/compiler/parser" />
@@ -26,13 +26,16 @@
 	</target>
 
 	<target name="compile" description="Compiles all java files" depends="javacc">
-		<javac destdir="${build}/classes" source="1.5" srcdir="${spinja}" includeantruntime="false"/>
+		<javac destdir="${build}/classes"  source="1.7" debug="on" debuglevel="lines,vars,source" srcdir="${spinja}" includeantruntime="false">
+			  <compilerarg line="-XDignore.symbol.file" />	
+		</javac>
 	</target>
 
 	<target name="jar" description="Generates jar-file" depends="compile">
 		<jar destfile="${build}/${name}.jar">
 			<fileset dir="${build}/classes">
 				<include name="**/*.class" />
+                <include name="**/*.c" />
 			</fileset>
 			<manifest>
 				<attribute name="Built-By" value="${user.name}" />
@@ -44,6 +47,21 @@
 	</target>
 
 	<target name="build" depends="jar">
+        <replace file="spinja/promela/compiler/parser/Promela.java">
+            <replacetoken>
+
+public class Promela</replacetoken>
+            <replacevalue>
+@SuppressWarnings("all")
+public class Promela</replacevalue>
+        </replace>
+        <replace file="spinja/promela/compiler/parser/PromelaTokenManager.java">
+            <replacetoken>*/
+public class Promela</replacetoken>
+            <replacevalue>*/
+@SuppressWarnings("all")
+public class Promela</replacevalue>
+        </replace>
 	</target>
 
 	<target name="javadocs" description="Generates the Javadoc of the SpinJa library" depends="prepare">

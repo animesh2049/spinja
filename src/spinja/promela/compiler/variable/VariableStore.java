@@ -15,12 +15,13 @@
 package spinja.promela.compiler.variable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import spinja.promela.compiler.parser.ParseException;
 import spinja.util.StringWriter;
-
 /**
  * A variable container is an object that can hold one or more variables 
  * (e.g. a specification or a proctype is Promela). This container can 
@@ -33,13 +34,30 @@ public class VariableStore implements VariableContainer {
         return !(var.isWritten() || var.getType() instanceof ChannelType);
     }
 
+    private final Map<String, Variable> varNames; 
     private final List<Variable> vars;
+
+    private final Map<String, String> mapping;
+    
+    public void addVariableMapping(String s, String v) {
+    	mapping.put(s, v);
+    }
+
+    public String getVariableMapping(String s) {
+    	return mapping.get(s);
+    }
+
+    public Map<String, String> getVariableMappings() {
+    	return mapping;
+    }
 
     /**
      * Creates a new VariableStore.
      */
     public VariableStore() {
         vars = new LinkedList<Variable>();
+        varNames = new HashMap<String, Variable>();
+        mapping = new HashMap<String, String>();
     }
 
     /**
@@ -54,8 +72,17 @@ public class VariableStore implements VariableContainer {
             throw new IllegalArgumentException();
         }
         vars.add(var);
+        varNames.put(var.getName(), var);
     }
-
+    
+    public void prependVariable(final Variable var) {
+        if (var == null) {
+            throw new IllegalArgumentException();
+        }
+        vars.add(0, var);
+        varNames.put(var.getName(), var);
+    }
+    
     /**
      * @return The number of bytes that is needed to store all the 
      *         variables currently in the container.
@@ -66,9 +93,15 @@ public class VariableStore implements VariableContainer {
             if (canSkipVar(var)) {
                 continue;
             }
+           
+            if(var.getArraySize()!=-1){
             for (int i = 0; i < var.getArraySize(); i++) {
                 nrBytes += (var.getType().getBits() - 1) / 8 + 1;
             }
+            }else{//HIL 05/26/2015:To fix the var size issue
+            	 nrBytes += (var.getType().getBits() - 1) / 8 + 1;
+            }
+            //System.out.println("#####getBufferSize#######"+var.getName()+ nrBytes+"##"+var.getType());
         }
         return nrBytes;
     }
@@ -82,16 +115,17 @@ public class VariableStore implements VariableContainer {
      *         variable accesable.
      */
     public Variable getVariable(final String name) {
-        for (final Variable var : vars) {
-            if (var.getName().equals(name)) {
-                return var;
-            }
-        }
-        return null;
+        Variable var = varNames.get(name);
+        if (var != null)
+            return var;
+    	String to = getVariableMapping(name);
+    	if (null == to)
+    	    return null;
+        return getVariable(to);
     }
 
     /**
-     * @return A new list with all the variables that are stored here.
+     * @return A list with all the variables that are stored here.
      */
     public List<Variable> getVariables() {
         return new ArrayList<Variable>(vars);
@@ -105,12 +139,13 @@ public class VariableStore implements VariableContainer {
      * @return True when there was already any variable with that name, otherwise false.
      */
     public boolean hasVariable(final String name) {
-        for (final Variable var : vars) {
-            if (var.getName().equals(name)) {
-                return true;
-            }
-        }
-        return false;
+        Variable var = varNames.get(name);
+        if (var != null)
+            return true;
+        String to = getVariableMapping(name);
+        if (null == to)
+            return false;
+        return hasVariable(to);
     }
     
     /**

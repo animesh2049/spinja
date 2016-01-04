@@ -88,19 +88,15 @@ public abstract class Expression {
 	/**
 	 * @return The VariableType which determines the normal result type of this expression. Note
 	 *         that many types can be cast to each other.
-	 * @throws ParseException
-	 *             When something went wrong while parsing the expression.
 	 */
-	public abstract VariableType getResultType() throws ParseException;
+	public abstract VariableType getResultType();
 
 	/**
 	 * @return The java code which represents the action for the side effect of the expression or
 	 *         null if there is none. Note: currently only the run expression can give a side-effect
 	 *         and it is advised that future addition should not have any side-effect.
-	 * @throws ParseException
 	 */
-	@SuppressWarnings("unused")
-	public String getSideEffect() throws ParseException {
+	public String getSideEffect() {
 		return null;
 	}
 

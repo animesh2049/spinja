@@ -1,0 +1,30 @@
+#Step#1:Compile the promela model. Source file 'spinja.PanModel.java' will generate
+java -classpath spinja.jar spinja.Compile -v promela/DiningPhils.pml
+
+#Step#2:Compile the source file
+javac -cp spinja.jar spinja/PanModel.java
+
+#Step#3:Check the acceptance cycle. 
+#Windows machine:->java -cp spinja.jar;. spinja/PanModel -a
+java -cp spinja.jar:. spinja/PanModel -a
+
+#OUTPUT:
+#spinja error: acceptance cycle detected (at depth 113)
+#spinja: wrote Pan-with-never-claim.trail
+
+
+#State-vector 84 byte, depth reached 113, errors: 1
+#     166 states, stored
+#     142 states, matched
+#     308 transitions (= stored+matched)
+#     185 atomic steps
+#hash conflicts: 0 (resolved)
+
+#8.07707 memory usage (Mbyte)
+
+#spinja: elapsed time 0.40 seconds
+#spinja: rate      413 states/second
+#8.76131 real memory usage (Mbyte)
+
+
+

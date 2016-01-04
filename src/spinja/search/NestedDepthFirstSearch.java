@@ -31,7 +31,7 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 
 		@Override
 		public void take() throws ValidationException {
-			toggle = 1;
+			toggle = true;
 			seed = storeModel();
 		}
 
@@ -42,14 +42,14 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 
 		@Override
 		public void undo() {
-			toggle = 0;
+			toggle = false;
 			seed = null;
 		}
 	};
 
 	private static final long serialVersionUID = -6333219782324980671L;
 
-	private int toggle;
+	private boolean toggle;
 
 	private byte[] seed;
 
@@ -57,7 +57,7 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 			final boolean errorExceedDepth, final boolean checkForDeadlocks, final int maxErrors,
 			final TransitionCalculator<M, T> nextTransition) {
 		super(model, store, stackSize, errorExceedDepth, checkForDeadlocks, maxErrors, nextTransition);
-		toggle = 0;
+		toggle = false;
 		seed = null;
 	}
 
@@ -74,7 +74,7 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 			return null;
 		} else {
 			T next = nextTransition.next(model, (T) last);
-			if (next == null && last != null && toggle==0 && conditionHolds()) {
+			if (next == null && last != null && !toggle && conditionHolds()) {
 				return enterNestedSearch;
 			}
 			return next;
@@ -84,18 +84,18 @@ public abstract class NestedDepthFirstSearch<M extends Model<T>, T extends Trans
 	@Override
 	protected byte[] storeModel() {
 		storage.init(model.getSize() + 1);
-		storage.writeBoolean(toggle);
+		storage.writeBoolean(toggle ? 1 : 0);
 		model.encode(storage);
 		return storage.getBuffer();
 	}
 
 	@Override
 	protected void takeTransition(final Transition next) throws SpinJaException {
-		final int toggled = toggle;
+		final boolean toggled = toggle;
 
 		super.takeTransition(next);
 
-		if (toggled==1 && conditionHolds()) {
+		if (toggled && conditionHolds()) {
 			// If in nested search check for the cycle
 			byte[] curr = storeModel();
 			if (Arrays.equals(curr, seed)) {

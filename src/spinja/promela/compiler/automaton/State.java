@@ -16,10 +16,12 @@ package spinja.promela.compiler.automaton;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 
 import spinja.promela.compiler.actions.Action;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+import spinja.util.UnModifiableIterator;
 
 /**
  * A {@link State} within a {@link Automaton} is simply a state that contains the following
@@ -36,7 +38,12 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
  * @author Marc de Jonge
  */
 public class State {
-	private static class StateIdCounter {
+
+    public static final String LABEL_PROGRESS = "progress";
+	public static final String LABEL_ACCEPT = "accept";
+    public static final String LABEL_END = "end";
+
+    private static class StateIdCounter {
 		private static int id = 0;
 
 		private static synchronized int nextId() {
@@ -52,32 +59,26 @@ public class State {
 
 	private final List<Transition> out, in;
 
-	private final List<String> labels;
+	private List<String> labels;
 
 	/**
 	 * Returns an {@link Iterable} that makes it possible to use the enhanced for-loop over all
 	 * input transitions.
 	 */
 	public final Iterable<Transition> input = new Iterable<Transition>() {
-		public Iterator<Transition> iterator() {
-			return new Iterator<Transition>() {
-				private int index = 0;
+        public Iterator<Transition> iterator() {
+            return new UnModifiableIterator<Transition>() {
+                ListIterator<Transition> it;
 
-				private int size = in.size();
+                public boolean hasNext() { return it.hasNext(); }
+                public Transition next() { return it.next(); }
 
-				public boolean hasNext() {
-					return index < size;
-				}
-
-				public Transition next() {
-					return in.get(index++);
-				}
-
-				public void remove() {
-					throw new NotImplementedException();
-				}
-			};
-		};
+                @Override
+                public void init() {
+                    it = in.listIterator();
+                }
+            };
+        };
 	};
 
 	/**
@@ -85,24 +86,18 @@ public class State {
 	 * output transitions.
 	 */
 	public final Iterable<Transition> output = new Iterable<Transition>() {
-		public Iterator<Transition> iterator() {
-			return new Iterator<Transition>() {
-				private int index = 0;
+	    public Iterator<Transition> iterator() {
+            return new UnModifiableIterator<Transition>() {
+                ListIterator<Transition> it;
 
-				private int size = out.size();
+                public boolean hasNext() { return it.hasNext(); }
+                public Transition next() { return it.next(); }
 
-				public boolean hasNext() {
-					return index < size;
-				}
-
-				public Transition next() {
-					return out.get(index++);
-				}
-
-				public void remove() {
-					throw new NotImplementedException();
-				}
-			};
+                @Override
+                public void init() {
+                    it = out.listIterator();
+                }
+            };
 		};
 	};
 
@@ -118,8 +113,8 @@ public class State {
 		this.automaton = automaton;
 		this.inAtomic = inAtomic;
 		this.stateId = StateIdCounter.nextId();
-		out = new ArrayList<Transition>();
-		in = new ArrayList<Transition>();
+		out = new LinkedList<Transition>();
+		in = new LinkedList<Transition>();
 		labels = new ArrayList<String>();
 	}
 
@@ -161,13 +156,13 @@ public class State {
 	 */
 	public void delete() {
 		// Remove all input and output transitions
-		while (!in.isEmpty()) {
-			in.get(0).delete();
-		}
+        while (!in.isEmpty()) { // iterator causes concurrent modification exception
+            in.get(0).delete();
+        }
 
-		while (!out.isEmpty()) {
-			out.get(0).delete();
-		}
+        while (!out.isEmpty()) {
+            out.get(0).delete();
+        }
 	}
 
 	/**
@@ -178,10 +173,12 @@ public class State {
 	 */
 	public boolean isEndingState() {
 		for (Transition trans : out) {
-			if (trans instanceof EndTransition || trans instanceof NeverEndTransition)
+			if (trans instanceof EndTransition ||
+				trans instanceof NeverEndTransition ||
+				null == trans.getTo())
 				return true;
 		}
-		return hasLabelPrefix("end");
+		return hasLabelPrefix(LABEL_END);
 	}
 
 	/**
@@ -190,7 +187,7 @@ public class State {
 	 * @return true when this state is and acceptance state.
 	 */
 	public boolean isAcceptState() {
-		return hasLabelPrefix("accept");
+		return hasLabelPrefix(LABEL_ACCEPT);
 	}
 
 	/**
@@ -199,7 +196,7 @@ public class State {
 	 * @return true when this state is and progress state.
 	 */
 	public boolean isProgressState() {
-		return hasLabelPrefix("progress");
+		return hasLabelPrefix(LABEL_PROGRESS);
 	}
 
 	/**
@@ -242,8 +239,22 @@ public class State {
 	 * @return True if one of the labels that is has begins with the given prefix, false otherwise.
 	 */
 	public boolean hasLabelPrefix(final String prefix) {
-		for (final String label : labels) {
+        return hasLabelPrefix (labels,prefix);
+    }
+
+	static public boolean hasLabelPrefix(List<String> labels, final String prefix) {
+		if (labels == null) return false;
+	    for (final String label : labels) {
 			if (label.startsWith(prefix)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public boolean hasLabel(final String prefix) {
+		for (final String label : labels) {
+			if (label.equals(prefix)) {
 				return true;
 			}
 		}
@@ -326,7 +337,7 @@ public class State {
 	 */
 	@Override
 	public String toString() {
-		return (inAtomic ? "Atomic " : "") + "State " + stateId + " (OUT: " + out + ")";
+		return (inAtomic ? "Atomic " : "") + "State " + stateId + " (OUT: " + out + ") "+ labels;
 	}
 
 	/**
@@ -355,4 +366,16 @@ public class State {
 		t.addAction(action);
 		return t;
 	}
+
+	public void setLabels(List<String> labels) {
+		this.labels = labels;
+	}
+	
+	public List<String> getLabels() {
+		return labels;
+	}
+
+    public void addLabels(List<String> labels2) {
+        this.labels.addAll(labels2);
+    }
 }

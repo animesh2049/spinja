@@ -16,13 +16,15 @@ package spinja.promela.compiler.automaton;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
-import org.omg.CORBA._PolicyStub;
-
+import spinja.promela.compiler.Proctype;
 import spinja.promela.compiler.actions.Action;
 import spinja.promela.compiler.actions.ActionContainer;
-import spinja.promela.compiler.actions.ChannelReadAction;
 import spinja.promela.compiler.actions.ChannelSendAction;
+import spinja.promela.compiler.actions.ExprAction;
+import spinja.promela.compiler.expression.ConstantExpression;
+import spinja.promela.compiler.expression.Expression;
 import spinja.promela.compiler.parser.ParseException;
 import spinja.util.StringWriter;
 
@@ -33,7 +35,7 @@ import spinja.util.StringWriter;
  * 
  * @author Marc de Jonge
  */
-public abstract class Transition implements Iterable<Action>, ActionContainer {
+public abstract class Transition implements ActionContainer {
 	private static class TransitionIdCounter {
 		private static int id = 0;
 
@@ -45,6 +47,8 @@ public abstract class Transition implements Iterable<Action>, ActionContainer {
 	private State from, to;
 
 	private final int transId;
+
+    private List<String> labels;
 
 	/**
 	 * Constructor of Transition. Creates a {@link Transition} from one {@link State} to an other.
@@ -175,10 +179,11 @@ public abstract class Transition implements Iterable<Action>, ActionContainer {
 	/**
 	 * Duplicates this Transition. After this function returns, the from State should have to
 	 * different Transitions as output that behave exactly the same.
+	 * @param from TODO
 	 * 
 	 * @return The duplicated Transition.
 	 */
-	public abstract Transition duplicate();
+	public abstract Transition duplicateFrom(State from);
 
 	/**
 	 * Returns the number of action that were added to this {@link Transition}. By default zero is
@@ -324,10 +329,42 @@ public abstract class Transition implements Iterable<Action>, ActionContainer {
 		return new StringWriter().appendIf(takesAtomicToken(), "Atomic ").append(
 			getClass().getSimpleName()).append(" from ").append(
 			from == null ? "nowhere" : from.getStateId()).append(" to ").append(
-			to == null ? "nowhere" : to.getStateId()).append(" ").append(getText()).toString();
+			to == null ? "nowhere" : to.getStateId()).append(" ").append(
+			labels == null ? "" : " "+labels).append(getText()).toString();
 	}
 
 	public boolean isAlwaysEnabled() {
 		return false;
 	}
+
+	public boolean isAtomic() {
+		return (getTo() != null && getTo().isInAtomic());
+	}
+
+	public boolean isSkip() {
+		Action a;
+		try {
+			a = getAction(0);
+		} catch (IndexOutOfBoundsException iobe) {
+			return false;
+		}
+		if (a instanceof ExprAction) {
+			Expression e = ((ExprAction)a).getExpression();
+			if (!(e instanceof ConstantExpression)) return false;
+			return e.getToken().image.equals("skip");
+		}
+		return false;
+	}
+
+	public Proctype getProc() {
+		return getFrom().getAutomaton().getProctype();
+	}
+
+    public void setLabels(List<String> labels) {
+        this.labels = labels;
+    }
+
+    public List<String> getLabels() {
+        return labels;
+    }
 }

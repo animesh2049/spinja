@@ -29,9 +29,10 @@ import spinja.promela.compiler.variable.VariableType;
  * @author Marc de Jonge
  */
 public class ConstantExpression extends Expression {
+	@SuppressWarnings("unused")
 	private static final long serialVersionUID = -5861698132204844795L;
 
-	private final int nr;
+	protected final int nr;
 
 	/**
 	 * Creates a new ConstantExpression from a specified token and the constant number.
@@ -62,6 +63,16 @@ public class ConstantExpression extends Expression {
 		}
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (!(o instanceof ConstantExpression))
+			return false;
+		ConstantExpression ce = (ConstantExpression)o;
+		return getToken().kind == ce.getToken().kind && nr == ce.nr;
+	}
+	
 	@Override
 	public int getConstantValue() {
 		return nr;

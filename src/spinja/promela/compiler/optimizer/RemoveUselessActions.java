@@ -21,23 +21,29 @@ import spinja.promela.compiler.automaton.State;
 import spinja.promela.compiler.automaton.Transition;
 
 public class RemoveUselessActions implements GraphOptimizer {
-	public void optimize(final Automaton automaton) {
+	public int optimize(final Automaton automaton) {
 		Iterator<State> it = automaton.iterator();
+		int uselessCount = 0;
 		while (it.hasNext()) {
 			final State state = it.next();
-			for (final Transition out : state.output) {
+			Iterator<Transition> itt = state.output.iterator();
+			while (itt.hasNext()) {
+			    Transition out = itt.next();
 				if (out.isUseless()) {
 					final State next = out.getTo();
 
 					for (final Transition t : next.output) {
-						t.duplicate().changeFrom(state, out);
+						Transition duplicate = t.duplicateFrom(state);
+                        //duplicate.changeFrom(state, out);
+						duplicate.setLabels(next.getLabels());
 					}
 
-					it = automaton.iterator();
-					out.delete();					
-					break;
+					uselessCount++;
+					out.delete();
+		            itt = state.output.iterator();
 				}
 			}
 		}
+		return uselessCount;
 	}
 }

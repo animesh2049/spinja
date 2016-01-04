@@ -41,8 +41,8 @@ public class UselessTransition extends Transition {
 	 * @see spinja.promela.compiler.automaton.Transition#duplicate()
 	 */
 	@Override
-	public Transition duplicate() {
-		final Transition t = new UselessTransition(getFrom(), getTo(), text);
+	public Transition duplicateFrom(State from) {
+		final Transition t = new UselessTransition(from, getTo(), text);
 		return t;
 	}
 

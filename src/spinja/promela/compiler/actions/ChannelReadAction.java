@@ -23,6 +23,7 @@ import spinja.promela.compiler.expression.Expression;
 import spinja.promela.compiler.expression.Identifier;
 import spinja.promela.compiler.parser.ParseException;
 import spinja.promela.compiler.parser.Token;
+import spinja.promela.compiler.variable.ChannelVariable;
 import spinja.promela.compiler.variable.Variable;
 import spinja.promela.compiler.variable.VariableAccess;
 import spinja.util.StringWriter;
@@ -32,10 +33,19 @@ public class ChannelReadAction extends Action implements CompoundExpression {
 
 	private final List<Expression> exprs;
 
-	public ChannelReadAction(final Token token, final Identifier id) {
+	private final boolean poll;
+	private final boolean random;
+	
+	public ChannelReadAction(final Token token, final Identifier id, boolean poll, boolean random) {
 		super(token);
 		this.id = id;
 		exprs = new ArrayList<Expression>();
+		this.poll = poll;
+		this.random = random;
+	}
+
+	public ChannelReadAction(final Token token, final Identifier id) {
+		this(token, id, false, false);
 	}
 
 	public void addExpression(final Expression expr) {
@@ -176,5 +186,32 @@ public class ChannelReadAction extends Action implements CompoundExpression {
 		}
 		w.setLength(w.length() - 1);
 		return w.toString();
+	}
+
+	public Identifier getIdentifier() {
+		return id;
+	}
+
+	public List<Expression> getExprs() {
+		return exprs;
+	}
+
+	public boolean isPoll() {
+		return poll;
+	}
+
+	public boolean isNormal() {
+		return !poll;
+	}
+
+	public boolean isRendezVous() {
+		Variable v = id.getVariable();
+		if (!(v instanceof ChannelVariable)) throw new AssertionError("Channel operation on non-channel "+ id);
+		ChannelVariable cv = (ChannelVariable)v;
+		return cv.getType().isRendezVous();
+	}
+
+	public boolean isRandom() {
+		return random;
 	}
 }

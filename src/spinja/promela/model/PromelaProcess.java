@@ -24,24 +24,21 @@ public abstract class PromelaProcess extends Process<PromelaTransition> {
 
 	protected int _sid;
 
-	protected final int _pid;
+	protected  int _pid;
 
 	public PromelaProcess(PromelaModel promelaModel, int pid, final State[] table, final int startState) {
 		_model = promelaModel;
-		_pid = pid;
+		set_pid(pid);
 		_stateTable = table;
-		this._sid = startState;
+		this.set_sid(startState);
 	}
 
 	abstract public int getChannelCount();
 
-	@Override
-	public int getId() {
-		return _pid;
-	}
+	abstract public int getId(); //{	return get_pid();}
 
-	public final State getCurrentState() {
-		return _stateTable[_sid];
+	public  State getCurrentState() {
+		return _stateTable[get_sid()];
 	}
 
 	@Override
@@ -75,7 +72,7 @@ public abstract class PromelaProcess extends Process<PromelaTransition> {
 
 	@Override
 	public PromelaTransition nextTransition(final PromelaTransition last) {
-		if (_model._exclusive != PromelaModel._NO_PROCESS && _model._exclusive != _pid) {
+		if (_model._exclusive != PromelaModel._NO_PROCESS && _model._exclusive != get_pid()) {
 			return null;
 		}
 
@@ -121,14 +118,14 @@ public abstract class PromelaProcess extends Process<PromelaTransition> {
 
 		if (elseFactory != null) {
 			return elseFactory.newTransition();
-		} else if(_model._exclusive == _pid && last == null) {
+		} else if(_model._exclusive == get_pid() && last == null) {
 			return _model.newEndAtomic();
 		}
 
 		if (timeoutFactory != null && !_model._timeout && !_model._ignore_timeout) {
 			_model._ignore_timeout = true;
 			for (int i = _model._nrProcs - 1; i >= 0; i--) {
-				if (i != _pid && _model._procs[i].nextTransition(null) != null) {
+				if (i != get_pid() && _model._procs[i].nextTransition(null) != null) {
 					_model._ignore_timeout = false;
 					return null;
 				}
@@ -148,16 +145,16 @@ public abstract class PromelaProcess extends Process<PromelaTransition> {
 	}
 	
 	public PromelaProcess prevProcess() {
-		if(_pid > 0) {
-			return _model._procs[_pid - 1];
+		if(get_pid() > 0) {
+			return _model._procs[get_pid() - 1];
 		} else {
 			return null;
 		}
 	}
 
 	public PromelaProcess nextProcess() {
-		if (_pid + 1 < _model._nrProcs) {
-			return _model._procs[_pid + 1];
+		if (get_pid() + 1 < _model._nrProcs) {
+			return _model._procs[get_pid() + 1];
 		} else {
 			return null;
 		}
@@ -176,4 +173,16 @@ public abstract class PromelaProcess extends Process<PromelaTransition> {
 		}
 		return true;
 	}
+
+	protected int get_sid() {
+		return _sid;
+	}
+
+	protected void set_sid(int _sid) {
+		this._sid = _sid;
+	}
+
+	abstract public int get_pid(); //{return _pid;}
+
+	abstract public void set_pid(int _pid);// { 		this._pid = _pid; 	}
 }

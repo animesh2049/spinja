@@ -35,11 +35,11 @@ public class NeverEndTransition extends EndTransition {
 	}
 
 	/**
-	 * @see spinja.promela.compiler.automaton.EndTransition#duplicate()
+	 * @see spins.promela.compiler.automaton.EndTransition#duplicateFrom(State)
 	 */
 	@Override
-	public Transition duplicate() {
-		final Transition t = new NeverEndTransition(getFrom());
+	public Transition duplicateFrom(State from) {
+		final Transition t = new NeverEndTransition(from);
 		return t;
 	}
 

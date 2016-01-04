@@ -19,7 +19,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 import spinja.promela.compiler.actions.Action;
-import spinja.promela.compiler.actions.AssignAction;
 import spinja.promela.compiler.actions.ExprAction;
 import spinja.promela.compiler.actions.Sequence;
 import spinja.promela.compiler.expression.Expression;
@@ -54,14 +53,12 @@ public class ActionTransition extends Transition {
 	}
 
 	/**
-	 * @see spinja.promela.compiler.automaton.Transition#duplicate()
+	 * @see spinja.promela.compiler.automaton.Transition#duplicateFrom(State)
 	 */
 	@Override
-	public Transition duplicate() {
-		final ActionTransition t = new ActionTransition(getFrom(), getTo());
-		for (final Action a : sequence) {
-			t.addAction(a);
-		}
+	public Transition duplicateFrom(State from) {
+		final ActionTransition t = new ActionTransition(from, getTo());
+		t.sequence.add(sequence);
 		return t;
 	}
 

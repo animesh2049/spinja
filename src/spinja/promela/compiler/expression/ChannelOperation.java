@@ -57,12 +57,16 @@ public class ChannelOperation extends Expression {
 	}
 
 	@Override
-	public VariableType getResultType() throws ParseException {
+	public VariableType getResultType() {
 		return VariableType.BOOL;
 	}
 
 	@Override
 	public Set<VariableAccess> readVariables() {
 		return expr.readVariables();
+	}
+
+	public Expression getExpression() {
+		return expr;
 	}
 }

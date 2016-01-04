@@ -14,6 +14,8 @@
 
 package spinja.promela.model;
 
+import java.util.Arrays;
+
 import spinja.concurrent.model.ConcurrentModel;
 import spinja.exceptions.ValidationException;
 import spinja.model.Condition;
@@ -191,6 +193,8 @@ public abstract class PromelaModel extends ConcurrentModel<PromelaTransition> {
 		}
 		_procs[_nrProcs++] = proctype;
 		_process_size += proctype.getSize();
+		proctype.set_pid(_nrProcs - 1);
+		//System.out.println(Arrays.toString(_procs)+"######addProcess########"+_nrProcs);
 		return _nrProcs - 1;
 	}
 
@@ -283,7 +287,7 @@ public abstract class PromelaModel extends ConcurrentModel<PromelaTransition> {
 		PromelaTransition next = null;
 		if (_nrProcs > 0) {
 			if (_exclusive == _NO_PROCESS) {
-				int i = last== null ? _nrProcs - 1 : last.getProcess()._pid;
+				int i = last== null ? _nrProcs - 1 : last.getProcess().get_pid();
 				PromelaProcess proc = last == null ? _procs[i] : last.getProcess();
 				
 				next = proc.nextTransition(last);

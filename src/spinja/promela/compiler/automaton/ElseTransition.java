@@ -34,8 +34,8 @@ public class ElseTransition extends Transition {
 	 * @see spinja.promela.compiler.automaton.Transition#duplicate()
 	 */
 	@Override
-	public Transition duplicate() {
-		final Transition t = new ElseTransition(getFrom(), getTo());
+	public Transition duplicateFrom(State from) {
+		final Transition t = new ElseTransition(from, getTo());
 		return t;
 	}
 

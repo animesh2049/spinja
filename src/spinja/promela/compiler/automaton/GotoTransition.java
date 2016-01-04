@@ -40,16 +40,16 @@ public class GotoTransition extends Transition {
 	}
 
 	/**
-	 * @see spinja.promela.compiler.automaton.Transition#duplicate()
+	 * @see spins.promela.compiler.automaton.Transition#duplicateFrom(State)
 	 */
 	@Override
-	public Transition duplicate() {
-		final Transition t = new GotoTransition(getFrom(), getTo(), text);
+	public Transition duplicateFrom(State from) {
+		final Transition t = new GotoTransition(from, getTo(), text);
 		return t;
 	}
 
 	/**
-	 * @see spinja.promela.compiler.automaton.Transition#isLocal()
+	 * @see spins.promela.compiler.automaton.Transition#isLocal()
 	 */
 	@Override
 	public boolean isLocal() {
@@ -57,7 +57,7 @@ public class GotoTransition extends Transition {
 	}
 
 	/**
-	 * @see spinja.promela.compiler.automaton.Transition#getText()
+	 * @see spins.promela.compiler.automaton.Transition#getText()
 	 */
 	@Override
 	public String getText() {

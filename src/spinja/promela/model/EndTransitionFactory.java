@@ -25,7 +25,7 @@ public class EndTransitionFactory extends PromelaTransitionFactory {
 
 	@Override
 	public final boolean isEnabled() {
-		return state.proc._model._nrProcs == state.proc._pid + 1;
+		return state.proc._model._nrProcs == state.proc.get_pid() + 1;
 	}
 
 	@Override

@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 
 import spinja.promela.compiler.Proctype;
+import spinja.promela.compiler.expression.AritmicExpression;
 import spinja.promela.compiler.expression.Expression;
 import spinja.promela.compiler.expression.Identifier;
 import spinja.promela.compiler.parser.ParseException;
@@ -30,7 +31,7 @@ import spinja.util.StringWriter;
 public class AssignAction extends Action {
 	private final Identifier id;
 
-	private final Expression expr;
+	private Expression expr;
 
 	public AssignAction(final Token token, final Identifier id) {
 		this(token, id, null);
@@ -64,14 +65,9 @@ public class AssignAction extends Action {
 
 	@Override
 	public boolean isLocal(final Proctype proc) {
-		if (expr != null) {
-			for (final VariableAccess va : expr.readVariables()) {
-				if (!proc.hasVariable(va.getVar().getName())) {
-					return false;
-				}
-			}
-		}
-		return proc.hasVariable(id.getVariable().getName()) && super.isLocal(proc);
+		if (expr != null && !(new ExprAction(expr)).isLocal(proc))
+		    return false;
+        return proc.hasVariable(id.getVariable().getName()) && super.isLocal(proc);
 	}
 
 	@Override
@@ -138,7 +134,7 @@ public class AssignAction extends Action {
 	public String toString() {
 		switch (getToken().kind) {
 			case PromelaConstants.ASSIGN:
-				return id.toString() + "=" + expr.toString();
+				return id.toString() + " = " + expr.toString();
 			case PromelaConstants.INCR:
 				return id.toString() + "++";
 			case PromelaConstants.DECR:
@@ -150,5 +146,9 @@ public class AssignAction extends Action {
 
 	public Identifier getIdentifier() {
 		return id;
+	}
+
+	public void setExpr(AritmicExpression calc) {
+		expr = calc;
 	}
 }

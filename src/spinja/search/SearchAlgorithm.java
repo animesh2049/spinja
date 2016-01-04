@@ -14,13 +14,16 @@
 
 package spinja.search;
 
-import static spinja.search.Message.*;
+import static spinja.search.Message.DEADLOCK;
+import static spinja.search.Message.DUPLICATE_STATE;
+import static spinja.search.Message.EXCEED_DEPTH_ERROR;
+import static spinja.search.Message.EXCEED_DEPTH_WARNING;
+import static spinja.search.Message.NO_MORE_TRANSITIONS;
+import static spinja.search.Message.TRANS_ERROR;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryNotificationInfo;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -31,10 +34,8 @@ import spinja.exceptions.SpinJaException;
 import spinja.model.Condition;
 import spinja.model.Model;
 import spinja.model.Transition;
-import spinja.promela.model.PromelaTransition;
 import spinja.store.StateStore;
 import spinja.store.hash.HashAlgorithm;
-import spinja.store.hash.HashAlgorithm.HashGenerator;
 import spinja.util.ByteArrayStorage;
 
 /**
@@ -48,6 +49,8 @@ import spinja.util.ByteArrayStorage;
 public abstract class SearchAlgorithm<M extends Model<T>, 
 									  T extends Transition> extends Algoritm
 	implements NotificationListener, NotificationFilter {
+
+	private static final long serialVersionUID = -9221923281786933752L;
 
 	protected final M model;
 
@@ -74,7 +77,7 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 	private HashAlgorithm hash;
 
 	protected final TransitionCalculator<M, T> nextTransition;
-
+	private int counter=-1;
 	/**
 	 * Initialized this search algorithm
 	 * 
@@ -241,6 +244,7 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 	@Override
 	public void execute() {
 		byte[] state = storeModel();
+		int counter=-1;
 		int identifier;
 		if (model.conditionHolds(Condition.SHOULD_STORE_STATE)) {
 			identifier = store.addState(state);
@@ -261,7 +265,6 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 			if (outOfMemory) { // If there is too little memory left
 				throw new OutOfMemoryError(); // throw a java error
 			}
-
 			// Make sure that the state matches the model
 			assert checkModelState();
 
@@ -275,8 +278,8 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 				maxDepth = getDepth();
 			}			
 
-			 Transition next = nextTransition();
-
+			final Transition next = nextTransition();
+			
 			if (next == null) {
 				if (checkForDeadlocks && !model.conditionHolds(Condition.END_STATE)
 					&& getLastTransition() == null) {
@@ -284,21 +287,24 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 				} else {
 					report(NO_MORE_TRANSITIONS);
 				}
+//				if(model.conditionHolds(Condition.ACCEPT_STATE)){
+//					System.out.println( "$$$$$$$$$No Transaction$$$$$$$$$ACCEPT_STATE:"+Arrays.hashCode(storeModel())+"###"+getDepth());
+//				}else{
+//					System.out.println(getDepth()+"$$$$$$$$$No Transaction$$$$$$$$$:NO_ACCEPT_STATE"+Arrays.hashCode(storeModel())+"##"+next);
+//				}
 				stateDone();
+				storeModel();
 				continue;
 			}
-
 			try { // Take the next transition and check for errors
+				System.out.println( counter+"#########From:#################"+Arrays.hashCode(state)+"\t"+model.conditionHolds(Condition.ACCEPT_STATE));
 //				if(model.conditionHolds(Condition.ACCEPT_STATE)){
-//					System.out.println("##########From##"+Arrays.hashCode(state)+" Transaction Id:"+next.getId()+" Accep Cycle:"+model.conditionHolds(Condition.ACCEPT_STATE));
-//					}else{
-//						System.out.println("#########From###"+Arrays.hashCode(state)+" Transaction Id:"+next.getId());
-//					}
-				System.out.println(Arrays.hashCode(storeModel())+"#####Transition#######"+next);
-//				if(Arrays.hashCode(state)==1529929885){
-//					next=getTotalTransitions(null).get(0);
+//					System.out.println( "#########From############Accep State:"+Arrays.hashCode(storeModel())+"###"+getDepth());
+//
+//				}else{
+//					System.out.println( "#########From############NO Accept State:"+Arrays.hashCode(storeModel())+"###"+getDepth());
 //				}
-				//getTotalTransitions(next);
+				counter++;
 				takeTransition(next);
 			} catch (final SpinJaException ex) {
 				report(TRANS_ERROR, ex.getMessage());
@@ -306,7 +312,10 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 			}
 
 			state = storeModel();
-			System.out.println("##########TO##"+Arrays.hashCode(state));
+			
+//			restoreModel(state);
+//			storeModel();
+			System.out.println( "#########TO###################:"+Arrays.hashCode(state)+"\t"+model.conditionHolds(Condition.ACCEPT_STATE)+"\t###"+model.toString()+"\t##"+next);
 			// If the state should be stored, try to store it
 			if (model.conditionHolds(Condition.SHOULD_STORE_STATE)) {
 				identifier = store.addState(state);
@@ -352,24 +361,14 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 		model.encode(storage);
 		return storage.getBuffer();
 	}
+	protected void restoreModel(byte[] byteArr) {
+		storage.setBuffer(byteArr);
+		model.decode(storage);
+	}
 
 	protected abstract void takeTransition(Transition next) throws SpinJaException;
 
 	protected abstract void undoTransition();
 
 	public abstract SearchableStack getSearchableStack();
-	
-	public List<Transition>  getTotalTransitions(Transition last) {
-		//System.out.println("#####Transition#######"+last);
-		List<Transition> listTrans =new ArrayList<>();
-		while (true) {
-			last = model.nextTransition((T)last);
-			if (last == null)
-				break;
-			
-			listTrans.add(last);
-		}
-		System.out.println("#####Transition#######"+listTrans.size()+"  Trasn:#######"+listTrans);
-		return listTrans;
-	}
 }

@@ -1,13 +1,8 @@
-.classpath
-.project
-.settings
+/bin
 bin
 spinja
 *.diff
 *.model
 *.trail
-src/spinja/promela/compiler/parser/Promela*
-src/spinja/promela/compiler/parser/Parse*
-src/spinja/promela/compiler/parser/Token*
-src/spinja/promela/compiler/parser/SimpleCharStream*
 build
+dist

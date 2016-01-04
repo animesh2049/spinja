@@ -24,8 +24,10 @@ public class VariableType {
 
 	public static VariableType BYTE = new VariableType("byte", "int", 8);
 
-	public static VariableType PID = new VariableType("pid", "int", 8);
+	public static VariableType PC = new VariableType("pc", "int", 16);
 
+	public static VariableType PID = new VariableType("pid", "int", 8);
+	public static VariableType SID = new VariableType("pid", "int", 8);
 	public static VariableType SHORT = new VariableType("short", "int", 16);
 
 	public static VariableType INT = new VariableType("int", "int", 32);
@@ -33,8 +35,8 @@ public class VariableType {
 	public static VariableType MTYPE = new VariableType("mtype", "int", 8) {
 		@Override
 		public boolean canConvert(VariableType type) {
-			return type == VariableType.MTYPE;
-		}
+			return type == VariableType.MTYPE || super.canConvert(type);
+		} // we want to be able to assign integers to mtype variables.
 	};
 
 	private final String name, javaName;
@@ -83,6 +85,16 @@ public class VariableType {
 
 	public String getName() {
 		return name;
+	}
+
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (!(o instanceof VariableType))
+			return false;
+		VariableType ot = (VariableType)o;
+		return this == ot || (bits == ot.bits && name.equals(ot.name) &&
+								javaName.equals(ot.javaName)); 
 	}
 
 	public void writeVariableClass(final StringWriter w) throws ParseException {

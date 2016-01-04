@@ -31,6 +31,7 @@ import spinja.promela.compiler.variable.VariableType;
  * @author Marc de Jonge
  */
 public class CompareExpression extends Expression {
+	@SuppressWarnings("unused")
 	private static final long serialVersionUID = -7625932622450298223L;
 
 	private final Expression ex1, ex2;
@@ -53,6 +54,17 @@ public class CompareExpression extends Expression {
 		ex2 = right;
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (!(o instanceof CompareExpression))
+			return false;
+		CompareExpression ce = (CompareExpression)o;
+		return getToken().kind == ce.getToken().kind &&
+				ex1.equals(ce.ex1) && ex2.equals(ce.ex2);
+	}
+	
 	@Override
 	public String getBoolExpression() throws ParseException {
 		return "(" + ex1.getIntExpression() + " " + getToken().image + " " + ex2.getIntExpression()
@@ -90,9 +102,9 @@ public class CompareExpression extends Expression {
 	}
 
 	@Override
-	public String getSideEffect() throws ParseException {
+	public String getSideEffect() {
 		if ((ex1.getSideEffect() != null) || (ex2.getSideEffect() != null)) {
-			throw new MyParseException("No sideeffect allowed in a comparison!", getToken());
+			return "size effect!";
 		}
 		return null;
 	}
@@ -107,11 +119,8 @@ public class CompareExpression extends Expression {
 
 	@Override
 	public String toString() {
-		try {
-			return getBoolExpression();
-		} catch (final ParseException ex) {
-			return "";
-		}
+		return "(" + ex1 + " " + getToken().image + " " + ex2
+					+ ")";
 	}
 
 	public Expression getExpr1() {

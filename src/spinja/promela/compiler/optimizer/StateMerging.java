@@ -23,8 +23,9 @@ import spinja.promela.compiler.automaton.Transition;
 
 public class StateMerging implements GraphOptimizer {
 
-	public void optimize(final Automaton graph) {
+	public int optimize(final Automaton graph) {
 		Iterator<State> it = graph.iterator();
+		int merged = 0;
 		while (it.hasNext()) {
 			final State state = it.next();
 			if (graph.getStartState() == state) {
@@ -34,16 +35,22 @@ public class StateMerging implements GraphOptimizer {
 				Transition in = state.getIn(0);
 				Transition out = state.getOut(0);
 
-				if (in.getActionCount() > 0 && out.getActionCount() > 0 && out.isAlwaysEnabled()
-					&& (out.isLocal() || state.isInAtomic()) && !in.hasChannelSendAction()) {
+				if (!out.isSkip() && in.getActionCount() > 0 && 
+						out.getActionCount() > 0 && out.isAlwaysEnabled() &&
+						(out.isLocal() || state.isInAtomic()) &&
+						!in.hasChannelSendAction()) {
+					//System.out.println(in +" & "+ out);
 					in.changeTo(out.getTo());
 					for (final Action action : out) {
 						in.addAction(action);
 					}
+					in.getFrom().addLabels(state.getLabels());
+					
 					state.delete();
-					it = graph.iterator();
+					merged++;
 				}
 			}
 		}
+		return merged;
 	}
 }

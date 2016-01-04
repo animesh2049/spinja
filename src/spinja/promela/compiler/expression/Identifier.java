@@ -30,11 +30,24 @@ import spinja.promela.compiler.variable.VariableType;
  * @author Marc de Jonge
  */
 public class Identifier extends Expression {
+	@SuppressWarnings("unused")
 	private static final long serialVersionUID = -5928789117017713005L;
 
 	private Variable var = null;
 
 	private Expression arrayExpr = null;
+
+	private int instanceIndex = -1; // no instance index 
+
+	private Identifier sub = null;
+
+	public Identifier getSub() {
+		return sub;
+	}
+
+	public void setSub(Identifier sub) {
+		this.sub = sub;
+	}
 
 	/**
 	 * Creates a new Identifier that refers to the specified variable.
@@ -44,10 +57,11 @@ public class Identifier extends Expression {
 	 * @param var
 	 *            The variable to which this identifier points.
 	 */
-	public Identifier(final Token token, final Variable var) {
+	public Identifier(final Token token, final Variable var, Identifier sub) {
 		super(token);
 		this.var = var;
 		arrayExpr = null;
+		this.sub = sub;
 	}
 
 	/**
@@ -58,13 +72,34 @@ public class Identifier extends Expression {
 	 *            The token that is stored for debug reasons.
 	 * @param var
 	 *            The variable to which this identifier points.
-	 * @param expr
+	 * @param arrayExpr
 	 *            The expression that calculates the index in the array.
 	 */
-	public Identifier(final Token token, final Variable var, final Expression expr) {
+	public Identifier(final Token token, final Variable var, final Expression arrayExpr,
+			Identifier sub) {
 		super(token);
 		this.var = var;
-		arrayExpr = expr;
+		this.arrayExpr = arrayExpr;
+		this.sub = sub;
+	}
+
+	public Identifier(final Variable var) {
+		super(null);
+		this.var = var;
+		arrayExpr = null;
+		this.sub = null;
+	}
+
+	public Identifier(Identifier id, Identifier sub) {
+		this(id.getToken(), id.var, id.getArrayExpr(), sub);
+	}
+
+	public Identifier(Identifier id, Variable sub) {
+		this(id.getToken(), id.var, id.getArrayExpr(), new Identifier(sub));
+	}
+
+	public int getConstantValue() throws ParseException {
+		return var.getConstantValue();
 	}
 
 	/**
@@ -76,10 +111,11 @@ public class Identifier extends Expression {
 
 	@Override
 	public String getIntExpression() throws ParseException {
-		if (var.getArraySize() > 1) {
+		if (var.getArraySize() > -1) {
 			if (arrayExpr != null) {
 				return var.getName() + "[" + arrayExpr.getIntExpression() + "]";
 			} else {
+				assert (false);
 				return var.getName() + "[0]";
 			}
 		} else {
@@ -88,12 +124,12 @@ public class Identifier extends Expression {
 	}
 
 	@Override
-	public VariableType getResultType() throws ParseException {
+	public VariableType getResultType() {
 		return var.getType();
 	}
 
 	@Override
-	public String getSideEffect() throws ParseException {
+	public String getSideEffect() {
 		if (arrayExpr != null) {
 			return arrayExpr.getSideEffect();
 		} else {
@@ -117,14 +153,57 @@ public class Identifier extends Expression {
 
 	@Override
 	public String toString() {
-		if (var.getArraySize() > 1) {
+		String res = "";
+        if (getInstanceIndex() != -1) {
+            res += var.getOwner().getName();
+            res += "[" + getInstanceIndex() + "]";
+            res += ":";
+            res += var.getRealName();
+            if (var.getArraySize() > -1) {
+                if (arrayExpr != null) {
+                    res += "[" + arrayExpr.toString() + "]";
+                } else {
+                    assert (false);
+                    res += "[0]";
+                }
+            }
+            return res;
+        }
+		if (var.getArraySize() > -1) {
 			if (arrayExpr != null) {
-				return var.getName() + "[" + arrayExpr.toString() + "]";
+				res = var.toString() + "[" + arrayExpr.toString() + "]";
 			} else {
-				return var.getName() + "[0]";
+				assert (false);
+				res = var.toString() + "[0]";
 			}
 		} else {
-			return var.getName();
+			res = var.toString();
 		}
+		if (null != sub)
+			res += "."+ sub.toString();
+		return res;
 	}
+	
+	public boolean equals(Object o) {
+		if (!(o instanceof Identifier)) 
+			return false;
+		Identifier oi = (Identifier)o;
+		if (!var.equals(oi.var))
+			return false;
+		if (arrayExpr == null || oi.arrayExpr == null)
+			return arrayExpr == oi.arrayExpr;
+		return arrayExpr.equals(oi.arrayExpr);
+	}
+
+	/**
+	 * Vor remote variable ref
+	 * @return
+	 */
+    public int getInstanceIndex() {
+        return instanceIndex;
+    }
+
+    public void setInstanceIndex(int instanceIndex) {
+        this.instanceIndex = instanceIndex;
+    }
 }

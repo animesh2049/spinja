@@ -17,6 +17,7 @@ package spinja.promela.compiler.actions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -26,14 +27,22 @@ import spinja.promela.compiler.parser.ParseException;
 import spinja.promela.compiler.parser.Token;
 import spinja.util.StringWriter;
 
-public class OptionAction extends Action {
+public class OptionAction extends Action implements Iterable<Sequence> {
 	private final boolean loops;
+	
+	private String label = null;
 
 	private final List<Sequence> options;
+
+	private boolean hasSuccessor = false;
+	static int number = 0;
 
 	public OptionAction(Token token, boolean loops) {
 		super(token);
 		this.loops = loops;
+		if (loops) {
+			label = "do_label_"+ number++;
+		}
 		options = new ArrayList<Sequence>();
 	}
 
@@ -42,10 +51,14 @@ public class OptionAction extends Action {
 		return null;
 	}
 
-	public Sequence startNewOption() {
-		Sequence seq = new Sequence();
+	public Sequence startNewOption(Sequence seq) {
 		options.add(seq);
 		return seq;
+	}
+
+	public Sequence startNewOption() {
+		Sequence seq = new Sequence();
+		return startNewOption(seq);
 	}
 
 	@Override
@@ -86,6 +99,10 @@ public class OptionAction extends Action {
 		}
 	}
 
+	public boolean loops() {
+		return loops;
+	}
+
 	@Override
 	public boolean isLocal(Proctype proc) {
 		for (Sequence seq : options) {
@@ -114,7 +131,7 @@ public class OptionAction extends Action {
 	public boolean isComplex() {
 		for (Sequence seq : options) {
 			for (Identifier id : seq.getChangedVariables()) {
-				if (id.getVariable().getArraySize() > 1) {
+				if (id.getVariable().getArraySize() > -1) {
 					return true;
 				}
 			}
@@ -129,7 +146,23 @@ public class OptionAction extends Action {
 
 	@Override
 	public String toString() {
-		return "d_step";
+		return loops ? "do" : "if";
 	}
 
+	@Override
+	public Iterator<Sequence> iterator() {
+		return options.iterator();
+	}
+	
+	public String getLabel() {
+		return label;
+	}
+
+	public boolean hasSuccessor() {
+		return hasSuccessor;
+	}
+
+	public void hasSuccessor(boolean hasSuccessor) {
+		this.hasSuccessor = hasSuccessor;
+	}
 }

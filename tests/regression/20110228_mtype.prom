@@ -5,7 +5,7 @@
  *   grammar, causing an unintuitive error message.
  */
 
-mtype = { a b c };
+mtype = { a, b, c };
 
 init {
 	mtype type = b;

@@ -133,8 +133,9 @@ public abstract class PromelaTransitionFactory {
 		@Override
 		public void take() throws ValidationException {
 			takeImpl();
-			assert getProcess()._sid == stateFrom;
-			getProcess()._sid = stateTo;
+			assert getProcess().get_sid() == stateFrom;
+			getProcess().set_sid(stateTo);
+			System.out.println("#######NonAtomicTransition#######"+getProcess().get_pid());
 			getProcess()._model.sendTransitionTakenEvent(this);
 		}
 
@@ -149,9 +150,9 @@ public abstract class PromelaTransitionFactory {
 
 		@Override
 		public void undo() {
-			assert getProcess()._sid == stateTo;
+			assert getProcess().get_sid() == stateTo;
 			undoImpl();
-			getProcess()._sid = stateFrom;
+			getProcess().set_sid(stateFrom);
 			getProcess()._model.sendTransitionUndoEvent(this);
 		}
 
@@ -182,18 +183,19 @@ public abstract class PromelaTransitionFactory {
 		public void take() throws ValidationException {
 			old_exclusive = getProcess()._model._exclusive;
 			takeImpl();
-			assert getProcess()._sid == stateFrom;
-			getProcess()._sid = stateTo;
-			getProcess()._model._exclusive = takeAtomic ? getProcess()._pid : PromelaModel._NO_PROCESS;
+			assert getProcess().get_sid() == stateFrom;
+			getProcess().set_sid(stateTo);
+			System.out.println("#######AtomicTransition#######"+getProcess().get_pid());
+			getProcess()._model._exclusive = takeAtomic ? getProcess().get_pid() : PromelaModel._NO_PROCESS;
 			getProcess()._model.sendTransitionTakenEvent(this);
 		}
 
 		@Override
 		public void undo() {
-			assert getProcess()._sid == stateTo;
+			assert getProcess().get_sid() == stateTo;
 			undoImpl();
 			getProcess()._model._exclusive = old_exclusive;
-			getProcess()._sid = stateFrom;
+			getProcess().set_sid(stateFrom);
 			getProcess()._model.sendTransitionUndoEvent(this);
 		}
 	}

@@ -14,7 +14,6 @@
 
 package spinja.store;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 
 import spinja.store.hash.HashAlgorithm;
@@ -29,6 +28,7 @@ import spinja.store.hash.HashAlgorithm.HashGenerator;
  * 
  * @author Marc de Jonge
  */
+@SuppressWarnings("all")
 public class HashCompactStore extends StateStore {
 	private abstract class Table extends StateStore {
 		protected int stored;
@@ -54,9 +54,9 @@ public class HashCompactStore extends StateStore {
 			return stored;
 		}
 
-		public long getConflicts() {
+/*		public long getConflicts() {
 			return conflicts;
-		}
+		}*/
 	}
 
 	private class HashCompactStore32 extends Table {

@@ -37,8 +37,8 @@ public class EndTransition extends Transition {
 	 * @see spinja.promela.compiler.automaton.Transition#duplicate()
 	 */
 	@Override
-	public Transition duplicate() {
-		final Transition t = new EndTransition(getFrom());
+	public Transition duplicateFrom(State from) {
+		final Transition t = new EndTransition(from);
 		return t;
 	}
 

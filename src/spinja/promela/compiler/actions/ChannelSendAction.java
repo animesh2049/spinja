@@ -22,8 +22,11 @@ import spinja.promela.compiler.Proctype;
 import spinja.promela.compiler.expression.CompoundExpression;
 import spinja.promela.compiler.expression.Expression;
 import spinja.promela.compiler.expression.Identifier;
+import spinja.promela.compiler.expression.MTypeReference;
 import spinja.promela.compiler.parser.ParseException;
 import spinja.promela.compiler.parser.Token;
+import spinja.promela.compiler.variable.ChannelVariable;
+import spinja.promela.compiler.variable.Variable;
 import spinja.promela.compiler.variable.VariableAccess;
 import spinja.util.StringWriter;
 
@@ -43,6 +46,13 @@ public class ChannelSendAction extends Action implements CompoundExpression {
 		for (final VariableAccess va : expr.readVariables()) {
 			va.getVar().setRead(true);
 		}
+	}
+
+	public boolean isRendezVous() {
+		Variable v = id.getVariable();
+		if (!(v instanceof ChannelVariable)) throw new AssertionError("Channel operation on non-channel "+ id);
+		ChannelVariable cv = (ChannelVariable)v;
+		return cv.getType().isRendezVous();
 	}
 
 	@Override
@@ -73,7 +83,11 @@ public class ChannelSendAction extends Action implements CompoundExpression {
 		w.appendLine("if(!_channels[", id, "].isRendezVous()) return null;");
 		w.appendPrefix().append("return new int[]{").append(id);
 		for (final Expression expr : exprs) {
-			w.append(", ").append(expr.toString());
+			if(expr instanceof MTypeReference){//HIL 01/07/2015: To fix the compile error in generated promela model.
+				w.append(", ").append(((MTypeReference)expr).getNumber());
+			}else{
+				w.append(", ").append(expr.toString());
+			}
 		}
 		w.append("};").appendPostfix();
 		w.outdent();
@@ -110,5 +124,13 @@ public class ChannelSendAction extends Action implements CompoundExpression {
 		}
 		w.setLength(w.length() - 1);
 		return w.toString();
+	}
+
+	public Identifier getIdentifier() {
+		return id;
+	}
+
+	public List<Expression> getExprs() {
+		return exprs;
 	}
 }

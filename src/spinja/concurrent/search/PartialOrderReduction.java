@@ -61,7 +61,7 @@ public class PartialOrderReduction<M extends ConcurrentModel<T>, T extends Concu
 		if (last == null || last.getProcess().onlyLocalTransitions()) {
 			while (i >= 0) {
 				final Process<T> proc = model.getProcess(i--);
-				if (proc.onlyLocalTransitions()) {
+				if (proc!=null && proc.onlyLocalTransitions()) {
 					T next = proc.nextTransition(null);
 					if (next != null) {
 						next.setMetaInfo(MetaInfo.PartialOrderReduction);

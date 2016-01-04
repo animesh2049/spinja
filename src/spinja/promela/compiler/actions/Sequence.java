@@ -29,8 +29,13 @@ import spinja.promela.compiler.parser.Token;
 import spinja.promela.compiler.variable.Variable;
 import spinja.util.StringWriter;
 
-public class Sequence extends Action implements ActionContainer, Iterable<Action> {
+public class Sequence extends Action implements ActionContainer {
 	private final List<Action> actions;
+
+	public Sequence(Token t) {
+		super(t);
+		actions = new ArrayList<Action>();
+	}
 
 	public Sequence() {
 		super(null);
@@ -74,6 +79,9 @@ public class Sequence extends Action implements ActionContainer, Iterable<Action
 		}
 		return true;
 	}
+	public void add(Sequence o) {
+        actions.addAll(o.actions);
+    }
 
 	@Override
 	public String getEnabledExpression() throws ParseException {

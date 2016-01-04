@@ -84,6 +84,7 @@ public class ChannelType extends VariableType {
 			w.appendLine("first = 0;");
 			w.appendLine("for(int i = 0; i < filled; i++) {");
 			w.indent();
+			w.appendLine("buffer[(i+first)%buffer.length]= new int["+types.size()+"];");//HIL Update:05/03/2015: To fix the encode and decode issue in PanModel.java
 			vars.printDecode(w);
 			w.outdent();
 			w.appendLine("}");
@@ -139,11 +140,22 @@ public class ChannelType extends VariableType {
 
 	public void addType(final VariableType type) {
 		final Variable var = new Variable(type, "buffer[(i+first)%buffer.length][" + types.size()
-												+ "]", 1);
+												+ "]", -1);
 		var.setRead(true);
 		var.setWritten(true);
 		vars.addVariable(var);
 		types.add(type);
 	}
 
+	public VariableStore getVariableStore() {
+		return vars;
+	}
+
+	public List<VariableType> getTypes() {
+		return types;
+	}
+
+	public boolean isRendezVous() {
+		return getBufferSize() == 0;
+	}
 }

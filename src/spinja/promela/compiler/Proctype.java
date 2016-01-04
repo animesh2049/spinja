@@ -16,6 +16,7 @@ package spinja.promela.compiler;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import spinja.promela.compiler.automaton.Automaton;
 import spinja.promela.compiler.automaton.State;
@@ -39,38 +40,49 @@ public class Proctype implements VariableContainer {
 	/**
 	 * The specification to which this {@link Proctype} belongs
 	 */
-	private final Specification specification;
+	protected final Specification specification;
 
 	/**
 	 * The ID number of this {@link Proctype}.
 	 */
-	private final int id;
+	protected final int id;
 
 	/**
 	 * The number of active processes that are started when the model checking begins
 	 */
-	private final int nrActive;
+	protected int nrActive;
 
 	/**
 	 * The priority that is only used when ran randomly.
 	 */
-	@SuppressWarnings("unused")
-	private int priority;
+	protected int priority;
 
 	/**
 	 * The name of the process in the Model.
 	 */
-	private final String name;
+	protected final String name;
 
 	/**
 	 * The starting Node which points to the complete graph.
 	 */
-	private final Automaton automaton;
+	protected final Automaton automaton;
 
 	/**
 	 * The store where all the variables are stored.
 	 */
-	private final VariableStore varStore;
+	protected final VariableStore varStore;
+    
+    public void addVariableMapping(String s, String v) {
+    	varStore.addVariableMapping(s, v);
+    }
+
+    public String getVariableMapping(String s) {
+    	return varStore.getVariableMapping(s);
+    }
+
+    public Map<String, String> getVariableMappings() {
+    	return varStore.getVariableMappings();
+    }
 
 	/**
 	 * The expression which can enable or disable all actions.
@@ -118,6 +130,17 @@ public class Proctype implements VariableContainer {
 		isArgument = true;
 		arguments = new ArrayList<Variable>();
 	}
+	
+	public boolean equals(Object o) {
+		if (o == null || !(o instanceof Proctype))
+			return false;
+		Proctype p = (Proctype)o;
+		return p.getName().equals(name);
+	}
+
+	public int hashCode() {
+		return name.hashCode(); 
+	}
 
 	/**
 	 * Adds a new variable to this {@link Proctype}. While the lastArgument() function is not
@@ -127,7 +150,21 @@ public class Proctype implements VariableContainer {
 	 *            The variable that is to be added.
 	 */
 	public void addVariable(final Variable var) {
+		addVariable(var, this.isArgument);
+		var.setWritten(true);
+	}
+
+	public void addVariable(final Variable var, boolean isArgument) {
 		varStore.addVariable(var);
+		if (isArgument) {
+			arguments.add(var);
+			
+		}
+		var.setWritten(true);
+	}
+
+	public void prependVariable(final Variable var) {
+		varStore.prependVariable(var);
 		if (isArgument) {
 			arguments.add(var);
 			var.setWritten(true);
@@ -166,11 +203,21 @@ public class Proctype implements VariableContainer {
 		generateLocalVars(w);
 		generateConstructor(w);
 		generateStorable(w);
-		generateToString(w);
+		if(!"never".equals(getName())){
+		   generateToString(w);
+		}else{
+			generateToStringNeverClaim(w);
+		}
+		
 		generateGetChannelCount(w);
-
+		//generateStateId(w);
+		
+		//if(!"never".equals(getName())){
+		generateOverridenMethods(w);
+		generateProcId(w);
+		//}
 		if (enabler != null) {
-			// TODO
+			// SJTODO
 		}
 
 		w.outdent();
@@ -180,8 +227,13 @@ public class Proctype implements VariableContainer {
 	protected void generateConstructor(final StringWriter w) throws ParseException {
 		w.appendLine("public ", getName(), "(boolean decoding, int pid) {").indent();
 		{
-			w.appendLine("super(", getSpecification().getName(), "Model.this, pid, new State[",
-				automaton.size(), "], ", automaton.getStartState().getStateId(), ");");
+			if (specification.getNever() == this) {
+				w.appendLine("super(", getSpecification().getName(), "Model.this, 0, new State[",
+					automaton.size(), "], ", automaton.getStartState().getStateId(), ");");
+			} else {
+				w.appendLine("super(", getSpecification().getName(), "Model.this, pid, new State[",
+					automaton.size(), "], ", automaton.getStartState().getStateId(), ");");
+			}
 			w.appendLine();
 			// Generate the table
 			automaton.generateTable(w);
@@ -213,8 +265,7 @@ public class Proctype implements VariableContainer {
 
 	protected void generateLocalVars(final StringWriter w) {
 		for (final Variable var : varStore.getVariables()) {
-			w.appendLine("protected ", var.getType().getJavaName(), (var.getArraySize() > 1	? "[]"
-																							: ""),
+			w.appendLine("protected ", var.getType().getJavaName(), (var.getArraySize() > -1 ? "[]" : ""),
 				" ", var.getName(), ";");
 		}
 		w.appendLine();
@@ -243,7 +294,11 @@ public class Proctype implements VariableContainer {
 		// w.appendLine();
 		w.appendLine("public void encode(DataWriter _writer) {");
 		w.indent();
-		w.appendLine("_writer.writeByte(0x", Integer.toHexString(id), ");");
+		if(id!=-1){//HIL:06/23/2015: to fix the array index exception. trying to encode -1 in byte variable.
+			w.appendLine("_writer.writeByte(0x", Integer.toHexString(id), ");");
+		}else{
+			w.appendLine("_writer.writeByte(0x", Integer.toHexString(255), ");");
+		}
 		w.appendLine("_writer.writeByte(_sid);");
 		varStore.printEncode(w);
 		w.outdent();
@@ -262,7 +317,11 @@ public class Proctype implements VariableContainer {
 		// w.appendLine();
 		w.appendLine("public boolean decode(DataReader _reader) {");
 		w.indent();
+		if(id!=-1){//HIL:06/23/2015: to fix the array index exception. trying to decode the  -1 from byte variable.
 		w.appendLine("if(_reader.readByte() != 0x", Integer.toHexString(id), ") return false;");
+		}else{
+			w.appendLine("if(_reader.readByte() != 0x",Integer.toHexString(255), ") return false;");
+		}
 		w.appendLine("_sid = _reader.readByte();");
 		varStore.printDecode(w);
 		w.appendLine("return true;");
@@ -271,20 +330,32 @@ public class Proctype implements VariableContainer {
 		w.appendLine();
 	}
 
-	protected void generateToString(final StringWriter w) {
+	protected void generateToStringNeverClaim(final StringWriter w) {
 		// The toString function
 		w.appendLine("public String toString() {");
 		w.indent();
 		w.appendLine("StringBuilder sb = new StringBuilder();");
-		w.appendLine("if(_exclusive == _pid) sb.append(\"<atomic>\");");
-		w.appendLine("sb.append(\"" + getName() + " (\" + _pid + \",\" + _sid + \"): \");");
+		w.appendLine("if(_exclusive ==  get_pid()) sb.append(\"<atomic>\");");
+		w.appendLine("sb.append(\"" + getName() + " (\" +  get_pid() + \",\" + _sid + \"): \");");
 		varStore.printToString(w);
 		w.appendLine("return sb.toString();");
 		w.outdent();
 		w.appendLine("}");
 		w.appendLine();
 	}
-
+	protected void generateToString(final StringWriter w) {
+		// The toString function
+		w.appendLine("public String toString() {");
+		w.indent();
+		w.appendLine("StringBuilder sb = new StringBuilder();");
+		w.appendLine("if(_exclusive ==  _pid) sb.append(\"<atomic>\");");
+		w.appendLine("sb.append(\"" + getName() + " (\" +  _pid + \",\" + _sid + \"): \");");
+		varStore.printToString(w);
+		w.appendLine("return sb.toString();");
+		w.outdent();
+		w.appendLine("}");
+		w.appendLine();
+	}
 	protected void generateGetChannelCount(final StringWriter w) {
 		w.appendLine("public int getChannelCount() {");
 		w.indent();
@@ -292,7 +363,21 @@ public class Proctype implements VariableContainer {
 		w.outdent();
 		w.appendLine("}");
 	}
-
+//	protected void generateStateId(final StringWriter w) {
+//		w.appendLine("protected int get_sid() {return _sid;}");
+//		w.appendLine("protected void set_sid(int _sid) {this._sid = _sid;}");
+//	}
+	protected void generateProcId(final StringWriter w) {
+		w.appendLine("@Override");
+		w.appendLine("public int get_pid() {return _pid;}");
+		w.appendLine("@Override");
+		w.appendLine("public void set_pid(int _pid) {this._pid = _pid;}");
+	}
+	protected void generateOverridenMethods(final StringWriter w) {
+		w.appendLine("@Override");
+		w.appendLine("public int getId() {return _pid;}");
+		//w.appendLine("public final State getCurrentState() { return _stateTable[_sid]; 	}");
+	}
 	protected String getArgs() {
 		final StringWriter w = new StringWriter();
 		for (final Variable var : arguments) {
@@ -314,7 +399,7 @@ public class Proctype implements VariableContainer {
 	/**
 	 * @return The name of this {@link Proctype}.
 	 */
-	public final String getName() {
+	public String getName() {
 		return name;
 	}
 
@@ -360,7 +445,7 @@ public class Proctype implements VariableContainer {
 	 * @see spinja.promela.compiler.variable.VariableContainer#hasVariable(java.lang.String)
 	 */
 	public boolean hasVariable(final String name) {
-		return name.equals("_pid") || varStore.hasVariable(name);
+		return varStore.hasVariable(name);
 	}
 
 	/* Exclusive send and read functions */
@@ -391,6 +476,10 @@ public class Proctype implements VariableContainer {
 		isArgument = false;
 	}
 
+	public boolean isArgument() {
+		return isArgument;
+	}
+
 	/**
 	 * Changes the enabler expression of the process.
 	 * 
@@ -399,6 +488,10 @@ public class Proctype implements VariableContainer {
 	 */
 	public void setEnabler(final Expression enabler) {
 		this.enabler = enabler;
+	}
+
+	public Expression getEnabler() {
+		return enabler;
 	}
 
 	/**
@@ -419,5 +512,27 @@ public class Proctype implements VariableContainer {
 	@Override
 	public String toString() {
 		return getName();
+	}
+
+	public int getID() {
+		return id;
+	}
+
+	public List<Variable> getArguments() {
+		return arguments;
+	}
+
+	public void setNrActive(int nrActive) {
+		this.nrActive = nrActive;
+	}
+
+	List<ProcInstance> instances = new ArrayList<ProcInstance>();
+
+	public void addInstance(ProcInstance instance) {
+		instances.add(instance);
+	}
+
+	public List<ProcInstance> getInstances() {
+		return instances;
 	}
 }
