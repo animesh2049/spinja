@@ -5,12 +5,13 @@ SpinJa can be used to check for the absence of deadlocks, assertions, liveness p
 
 SpinJa is designed to behave similarly to SPIN, but to be more easily extendible and reusable. From the start we have committed ourselves to Java and a clean object-oriented approach. Despite the fact that SpinJa uses a layered object-oriented design and is written in Java, SpinJa is not slow: benchmark experiments have shown that on average it is about 3 times slower than the highly optimized SPIN which uses C as implementation language.
 
-SpinJa has been developed within the Formal Methods and Tools (FMT) group of the University of Twente.
-SpinJa is released under the Apache 2.0 license. 
+SpinJa has been developed within the [Formal Methods and Tools](http://fmt.cs.utwente.nl/) (FMT) group of the [University of Twente](www.utwente.nl).
+
+SpinJa is released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html). 
 # Files
 The binary distribution of SpinJa (spinja-0.9.3-bin.zip) contains the following files:
 
-    README.html: this file
+    README.md: this file
     spinja.jar: SpinJa binary and library
     spinja.sh: SpinJa shell script
     doc/CHANGES.txt: revision history for SpinJa
@@ -157,6 +158,12 @@ For general documentation on Promela and the model checker SPIN, please consult 
     This MSc this presents a layered, object-oriented design for explicit-state model checkers. SpinJa's design is based on this approach.
 
 # Version history
-    0.9.3 	2016.01.04 Spinja enhancement and bug fixes(Hitachi India R&D)
-    0.9 	2010.04.10 	First public release of SpinJa (binary and source).
-    0.8 	2008.09.10 	Initial version of SpinJa after MSc Project of Marc de Jonge
+    0.9.3   2016.01.04 Spinja enhancement & bug fixes(Hitachi India Pvt Ltd)
+    0.9     2010.04.10 	First public release of SpinJa (binary and source).
+    0.8     2008.09.10 	Initial version of SpinJa after MSc Project of Marc de Jonge
+# Release 0.9.3
+    -Integrated relevant changes from SpinS developments that are applicable to SpinJa
+    -Add new language features such as #include, #define, 
+    -Handle the inline functions expressed in Promela
+    -Fix the channel and process functionality in the sharing scenarios
+    -Optimise the state snapshot retrieval by selective localisation
