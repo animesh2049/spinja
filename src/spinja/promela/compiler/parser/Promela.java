@@ -8,7 +8,7 @@ import spinja.promela.compiler.variable.*;
 import spinja.promela.compiler.actions.*;
 import java.io.*;
 import java.util.*;
-
+@SuppressWarnings("all")
 public class Promela implements PromelaConstants {
         public static final String C_STATE_PROC_COUNTER = "_pc";
         public static final String C_STATE_PID = "_pid";

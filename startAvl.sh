@@ -17,7 +17,7 @@ while [ $# -gt 1 ] ; do
     shift
 done
 promela_file=$1
-
+mongod --port 7777 >/dev/null 2>&1
 java  -cp spinja.jar   spinja.Compile $promela_file
 javac -cp spinja.jar:. spinja/PanModel.java 
-java  -Xss16m -Xms256m -Xmx1024m -cp "spinja.jar:sqlite-jdbc-3.8.11.2.jar:." spinja.PanModel -a -DAVLSQLITE
+java  -cp "spinja.jar:lib/mongo-java-driver-3.2.2.jar:lib/Sizeof.jar:." -javaagent:lib/Sizeof.jar spinja.PanModel -a -DAVLSQLITE

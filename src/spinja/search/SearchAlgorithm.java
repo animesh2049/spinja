@@ -197,12 +197,12 @@ public abstract class SearchAlgorithm<M extends Model<T>,
 	@Override
 	public void printSummary() {
 		System.out.println("");
-		System.out.println("State-vector " + maxSize + " byte, depth reached " + maxDepth
+		System.err.println("State-vector " + maxSize + " byte, depth reached " + maxDepth
 							+ ", errors: " + nrErrors);
-		System.out.printf("%8d states, stored\n", store.getStored());
-		System.out.printf("%8d states, matched\n", statesMatched);
-		System.out.printf("%8d transitions (= stored+matched)\n", store.getStored() + statesMatched);
-		System.out.printf("%8d atomic steps\n", atomicSteps);
+		System.err.printf("%8d states, stored\n", store.getStored());
+		System.err.printf("%8d states, matched\n", statesMatched);
+		System.err.printf("%8d transitions (= stored+matched)\n", store.getStored() + statesMatched);
+		System.err.printf("%8d atomic steps\n", atomicSteps);
 		store.printSummary();
 	}
 

@@ -162,7 +162,7 @@ public class Run extends Thread {
             r.gc();
         }
         final double memory = (r.totalMemory() - r.freeMemory()) / (1024.0 * 1024.0);
-        System.out.printf("%7g real memory usage (Mbyte)\n", memory);
+        System.err.printf("%7g real memory usage (Mbyte)\n", memory);
         return true;
     }
 
@@ -177,11 +177,11 @@ public class Run extends Thread {
         algo.printSummary();
 
         double memory = algo.getBytes() / (1024.0 * 1024.0);
-        System.out.printf("%7g memory usage (Mbyte)\n", memory);
-        System.out.println();
+        System.err.printf("%7g memory usage (Mbyte)\n", memory);
+        System.err.println();
         final double seconds = (System.currentTimeMillis() - startTime) / 1e3;
-        System.out.printf("spinja: elapsed time %.2f seconds\n", seconds);
-        System.out.printf("spinja: rate %8d states/second\n", (int) (algo.getNrStates() / seconds));
+        System.err.printf("spinja: elapsed time %.2f seconds\n", seconds);
+        System.err.printf("spinja: rate %8d states/second\n", (int) (algo.getNrStates() / seconds));
 
         realMem();
 
@@ -266,8 +266,8 @@ public class Run extends Thread {
                 store = new HashTable(hashEntries.getValue());
             } else if (impl.isSet("SECONDARYBTREE")) {
                 store = new SecondaryBTree();
-            } else if {
-                store = new AVLTree();
+            } else if (impl.isSet("AVLSQLITE")){
+                store = new AVLTree(100000);
             }
             else{
                 store = new ProbingHashTable(hashEntries.getValue());

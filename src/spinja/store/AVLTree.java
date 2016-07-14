@@ -2,6 +2,13 @@ package spinja.store;
 
 import java.sql.*;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.client.*;
+import com.mongodb.client.model.CreateCollectionOptions;
+import org.bson.BsonDocument;
+import org.bson.Document;
+
 public class AVLTree extends StateStore{
 
     AVLNode root = null;
@@ -10,48 +17,62 @@ public class AVLTree extends StateStore{
     JDBCWrapper wrapper;
     int maxnodes;
     int totalStoredState;
-
+    long avl_hit_counter;
+    long disk_hit_counter;
+    long disk_insert_counter;
+    long disk_search_counter;
     public AVLTree(int number_of_nodes) {
-        wrapper = new JDBCWrapper("blobkey", "sample.db");
+        wrapper = new JDBCWrapper("localhost",7777, "test","spinja");
         maxnodes = number_of_nodes;
+        System.err.println("Maximum node size is "+number_of_nodes);
         totalStoredState = 0;
-    }
-
-    public String byteToString(byte[] b) {
-        return new String(b);
+        avl_hit_counter = 0;
+        disk_hit_counter = 0;
+        disk_search_counter = 0;
+        disk_insert_counter = 0;
     }
 
     public int addState(byte[] key) {
 
+        int ret = 1;
         if (totalStoredState == 0) {
             root = insert(root, key);
             head = MRUNode.insert(head, key);
             tail = head;
             totalStoredState++;
-            System.err.println("Inserted a New Key");
             return 1;
         } else {
             if (search(root, key)) {
-                System.err.println("Key Already Exists");
+            	avl_hit_counter++;
                 return -1;
             } else {
-                int res = wrapper.get(key);
+                byte[] to_insert = tail.data;
                 if (head.height - tail.height > maxnodes - 2) {
-                    byte[] to_insert = tail.data;
                     root = delete(root, to_insert);
                     tail = MRUNode.deletelast(tail);
-                    wrapper.put(to_insert);
+                    int res1 = wrapper.get(to_insert);
+                    int res = wrapper.get(key);
+                    disk_search_counter+=2;
+                    if (res1 != 1){
+                        disk_insert_counter++;
+                        wrapper.put(to_insert);
+                    }
+                    if(res == 1){
+                    	ret = -1;
+                    	disk_hit_counter++;
+                    }
+                    else {
+                    	ret = 1;
+                    	totalStoredState++;
+                    }
+                }
+                else {
+                    totalStoredState++;
+                    ret = 1;
                 }
                 head = MRUNode.insert(head, key);
                 root = insert(root, key);
-                if (res == 1) {
-                    System.err.println("Key Already Exists");
-                    return -1;
-                } else {
-                    System.err.println("Inserted a New Key");
-                    totalStoredState++;
-                    return 1;
-                }
+                return ret;
             }
         }
     }
@@ -67,8 +88,12 @@ public class AVLTree extends StateStore{
     }
 
     public void printSummary() {
-        System.out.println("----------------------Summary Report--------------------------------\n");
-        System.out.println("-------------Mixed MRU-AVL and SQLite-Mmap Implementation --------------------------------\n");
+        System.err.println("----------------------Summary Report--------------------------------\n");
+        System.err.println("-------------Mixed MRU-AVL and SQLite-Mmap Implementation --------------------------------\n");
+        System.err.println("Number of AVL Hits: "+avl_hit_counter);
+        System.err.println("Number of Disk Hits: "+disk_hit_counter);
+        System.err.println("Number of Disk Inserts: "+disk_insert_counter);
+        System.err.println("Number of Disk Searches: "+disk_search_counter);
     }
 
 
@@ -184,7 +209,7 @@ public class AVLTree extends StateStore{
                 int ltht = height(root.left);
                 int rtht = height(root.right);
                 if (ltht - rtht == -2) {
-                    System.out.println("Got Imbalance at " + root.data + " and val is  " + val);
+                    //System.out.println("Got Imbalance at " + root.data + " and val is  " + val);
                     if (height(root.right.right) >= height(root.right.left))
                         root = rotateWithRightChild(root);
                     else
@@ -203,7 +228,7 @@ public class AVLTree extends StateStore{
                 int ltht = height(root.left);
                 int rtht = height(root.right);
                 if (rtht - ltht == -2) {
-                    System.out.println("Got Imbalance at " + root.data + " and val is " + val);
+                    //System.out.println("Got Imbalance at " + root.data + " and val is " + val);
                     if (height(root.left.right) <= height(root.left.left)) {
                         root = rotateWithLeftChild(root);
                     } else
@@ -304,67 +329,41 @@ class MRUNode {
     }
 }
 
+/**
+ * Created by harry7 on 13/7/16.
+ */
 class JDBCWrapper {
-    Connection c;
-    String tablename;
-
-    public JDBCWrapper(String tablename, String database) {
-        this.c = null;
-        this.tablename = tablename;
+    MongoCollection coll  = null;
+    public JDBCWrapper(String Server,int port,String database,String collection){
         try {
-            Class.forName("org.sqlite.JDBC");
-            c = DriverManager.getConnection("jdbc:sqlite:" + database);
-            Statement stmt = null;
-            stmt = c.createStatement();
-            String sql = "PRAGMA mmap_size = 2147418111";
-            stmt.executeUpdate(sql);
-            sql = "DROP TABLE IF EXISTS " + tablename + "; CREATE TABLE " + tablename +
-                    "(key BLOB PRIMARYKEY UNIQUE);";
-            stmt.executeUpdate(sql);
-            sql = "PRAGMA mmap_size;";
-            ResultSet rs = stmt.executeQuery(sql);
-            while (rs.next()) {
-                if (rs.getLong(1) > 0)
-                    System.err.println("Mmap Mode turned on");
-                else {
-                    System.err.println("Mmap Mode is not turned on");
-                    // System.exit(1);
-                }
-            }
+
+            MongoClient mongoClient = new MongoClient(Server, port);
+            MongoDatabase db = mongoClient.getDatabase(database);
+            System.out.println("Connect to database successfully");
+            CreateCollectionOptions obj = new CreateCollectionOptions();
+            MongoCollection tmp = db.getCollection("people");
+            tmp.drop();
+            db.createCollection("people");
+            coll = db.getCollection("people");
+            BasicDBObject obj1 = new BasicDBObject();
+            obj1.append("key",1);
+            coll.createIndex(obj1);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
     }
-
-    public void put(byte[] key) {
-        Statement stmt = null;
-        int rows_affected = 0;
-        try {
-            String sql = "INSERT INTO " + tablename + " VALUES(?)";
-            PreparedStatement statement = c.prepareStatement(sql);
-            statement.setBytes(1, key);
-            rows_affected = statement.executeUpdate();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void put(byte[] key){
+        Document doc = new Document();
+        doc.append("key",key);
+        coll.insertOne(doc);
     }
-
-    public int get(byte[] key) {
-        Statement stmt = null;
-        boolean fl = false;
-        try {
-            stmt = c.createStatement();
-            String sql = "SELECT * from " + tablename + " where key=?";
-            PreparedStatement statement = c.prepareStatement(sql);
-            statement.setBytes(1, key);
-            ResultSet rs = statement.executeQuery();
-            if (rs.next()) {
-                fl = true;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    public int get(byte[] key){
+        BasicDBObject obj = new BasicDBObject();
+        obj.append("key",key);
+        MongoCursor curs = coll.find(obj).limit(1).iterator();
+        if(curs.hasNext()){
+            return 1;
         }
-        if (fl) return 1;
-        else return 0;
+        return  0;
     }
 }
