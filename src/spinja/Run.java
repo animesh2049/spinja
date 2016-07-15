@@ -182,9 +182,7 @@ public class Run extends Thread {
         final double seconds = (System.currentTimeMillis() - startTime) / 1e3;
         System.err.printf("spinja: elapsed time %.2f seconds\n", seconds);
         System.err.printf("spinja: rate %8d states/second\n", (int) (algo.getNrStates() / seconds));
-
         realMem();
-
     }
 
     public void search(final Class<? extends PromelaModel> clazz) {
@@ -267,7 +265,7 @@ public class Run extends Thread {
             } else if (impl.isSet("SECONDARYBTREE")) {
                 store = new SecondaryBTree();
             } else if (impl.isSet("AVLSQLITE")){
-                store = new AVLTree(100000);
+                store = new AVLTree();
             }
             else{
                 store = new ProbingHashTable(hashEntries.getValue());

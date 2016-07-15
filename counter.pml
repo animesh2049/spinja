@@ -1,5 +1,5 @@
 #define NOPROC 5
-#define LC 8
+#define LC 20
 int gc = 0;
 int nrpr = 0;
 int noproc = NOPROC;

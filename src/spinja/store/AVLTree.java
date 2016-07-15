@@ -9,68 +9,75 @@ import com.mongodb.client.model.CreateCollectionOptions;
 import org.bson.BsonDocument;
 import org.bson.Document;
 
-public class AVLTree extends StateStore{
+public class AVLTree extends StateStore {
 
     AVLNode root = null;
-    MRUNode head = null;
-    MRUNode tail = null;
+    static AVLNode head = null;
+    AVLNode tail = null;
     JDBCWrapper wrapper;
-    int maxnodes;
+    int to_swap;
     int totalStoredState;
     long avl_hit_counter;
     long disk_hit_counter;
     long disk_insert_counter;
     long disk_search_counter;
-    public AVLTree(int number_of_nodes) {
-        wrapper = new JDBCWrapper("localhost",7777, "test","spinja");
-        maxnodes = number_of_nodes;
-        System.err.println("Maximum node size is "+number_of_nodes);
+
+    public AVLTree() {
+        wrapper = new JDBCWrapper("localhost", 7777, "test", "spinja");
         totalStoredState = 0;
         avl_hit_counter = 0;
         disk_hit_counter = 0;
         disk_search_counter = 0;
         disk_insert_counter = 0;
+        to_swap = 0;
     }
 
     public int addState(byte[] key) {
 
         int ret = 1;
+        long mb = 1024 * 1024;
+        if (to_swap == 0) {
+            Runtime inst = Runtime.getRuntime();
+            long max_mem = inst.maxMemory();
+            long mem_used = inst.totalMemory() - inst.freeMemory();
+            if (max_mem - mem_used <= 256 * mb) {
+                to_swap = 1;
+                System.err.println("Free Memory available is "+(max_mem - mem_used)+" less than 256 MB")
+                System.err.println("So Will Start to Swap Out Now");
+            }
+        }
         if (totalStoredState == 0) {
             root = insert(root, key);
-            head = MRUNode.insert(head, key);
-            tail = head;
+            head = tail = root;
             totalStoredState++;
             return 1;
         } else {
             if (search(root, key)) {
-            	avl_hit_counter++;
+                avl_hit_counter++;
                 return -1;
             } else {
                 byte[] to_insert = tail.data;
-                if (head.height - tail.height > maxnodes - 2) {
+                if (to_swap == 1) {
+                    tail = tail.prev;
                     root = delete(root, to_insert);
-                    tail = MRUNode.deletelast(tail);
                     int res1 = wrapper.get(to_insert);
                     int res = wrapper.get(key);
-                    disk_search_counter+=2;
-                    if (res1 != 1){
+                    disk_search_counter += 2;
+                    if (res1 != 1) {
                         disk_insert_counter++;
                         wrapper.put(to_insert);
                     }
-                    if(res == 1){
-                    	ret = -1;
-                    	disk_hit_counter++;
+                    if (res == 1) {
+                        ret = -1;
+                        disk_hit_counter++;
+                    } else {
+                        ret = 1;
+                        totalStoredState++;
                     }
-                    else {
-                    	ret = 1;
-                    	totalStoredState++;
-                    }
-                }
-                else {
+                } else {
                     totalStoredState++;
                     ret = 1;
                 }
-                head = MRUNode.insert(head, key);
                 root = insert(root, key);
                 return ret;
             }
@@ -90,10 +97,10 @@ public class AVLTree extends StateStore{
     public void printSummary() {
         System.err.println("----------------------Summary Report--------------------------------\n");
         System.err.println("-------------Mixed MRU-AVL and SQLite-Mmap Implementation --------------------------------\n");
-        System.err.println("Number of AVL Hits: "+avl_hit_counter);
-        System.err.println("Number of Disk Hits: "+disk_hit_counter);
-        System.err.println("Number of Disk Inserts: "+disk_insert_counter);
-        System.err.println("Number of Disk Searches: "+disk_search_counter);
+        System.err.println("Number of AVL Hits: " + avl_hit_counter);
+        System.err.println("Number of Disk Hits: " + disk_hit_counter);
+        System.err.println("Number of Disk Inserts: " + disk_insert_counter);
+        System.err.println("Number of Disk Searches: " + disk_search_counter);
     }
 
 
@@ -121,6 +128,8 @@ public class AVLTree extends StateStore{
     private static AVLNode insert(AVLNode root, byte[] val) {
         if (root == null) {
             root = new AVLNode(val);
+            root.prev = AVLTree.head;
+            AVLTree.head = root;
         } else if (Compare_arrays(val, root.data) < 0) {
             root.left = insert(root.left, val);
             int ltht = height(root.left);
@@ -146,6 +155,7 @@ public class AVLTree extends StateStore{
         root.height = Math.max(ltht, rtht) + 1;
         return root;
     }
+
 
     private static AVLNode rotateWithLeftChild(AVLNode root) {
         AVLNode temp = root.left;
@@ -266,66 +276,20 @@ public class AVLTree extends StateStore{
 }
 
 class AVLNode {
-    AVLNode left, right;
+    AVLNode left, right, next, prev;
     int height;
     byte[] data;
 
     public AVLNode() {
-        this.left = this.right = null;
+        this.left = this.right = this.next = this.prev = null;
         this.data = null;
         this.height = 1;
     }
 
     public AVLNode(byte[] n) {
-        this.left = this.right = null;
+        this.left = this.right = this.next = this.prev = null;
         this.data = n;
         this.height = 1;
-    }
-}
-
-class MRUNode {
-    MRUNode next, prev;
-    int height;
-    byte[] data;
-
-    public MRUNode() {
-        this.next = this.prev = null;
-        this.data = null;
-        this.height = 0;
-    }
-
-    public MRUNode(byte[] n) {
-        this.next = this.prev = null;
-        this.data = n;
-        this.height = 1;
-    }
-
-    public static MRUNode insert(MRUNode head, byte[] val) {
-        MRUNode temp = new MRUNode(val);
-        if (head == null) {
-            temp.prev = temp.next = null;
-            return temp;
-        } else {
-            temp.next = head;
-            temp.prev = null;
-            temp.height = head.height + 1;
-            head.prev = temp;
-        }
-        return temp;
-    }
-
-    public static MRUNode deletelast(MRUNode last) {
-        MRUNode temp = last.prev;
-        temp.next = null;
-        return temp;
-    }
-
-    public static void printallmru(MRUNode head) {
-        MRUNode temp = head;
-        while (temp != null) {
-            System.out.println("MRU value is " + temp.data + " and height is " + temp.height);
-            temp = temp.next;
-        }
     }
 }
 
@@ -333,8 +297,9 @@ class MRUNode {
  * Created by harry7 on 13/7/16.
  */
 class JDBCWrapper {
-    MongoCollection coll  = null;
-    public JDBCWrapper(String Server,int port,String database,String collection){
+    MongoCollection coll = null;
+
+    public JDBCWrapper(String Server, int port, String database, String collection) {
         try {
 
             MongoClient mongoClient = new MongoClient(Server, port);
@@ -346,24 +311,26 @@ class JDBCWrapper {
             db.createCollection("people");
             coll = db.getCollection("people");
             BasicDBObject obj1 = new BasicDBObject();
-            obj1.append("key",1);
+            obj1.append("key", 1);
             coll.createIndex(obj1);
         } catch (Exception e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
     }
-    public void put(byte[] key){
+
+    public void put(byte[] key) {
         Document doc = new Document();
-        doc.append("key",key);
+        doc.append("key", key);
         coll.insertOne(doc);
     }
-    public int get(byte[] key){
+
+    public int get(byte[] key) {
         BasicDBObject obj = new BasicDBObject();
-        obj.append("key",key);
+        obj.append("key", key);
         MongoCursor curs = coll.find(obj).limit(1).iterator();
-        if(curs.hasNext()){
+        if (curs.hasNext()) {
             return 1;
         }
-        return  0;
+        return 0;
     }
 }

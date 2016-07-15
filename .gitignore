@@ -6,3 +6,4 @@ spinja
 *.trail
 build
 dist
+data/
