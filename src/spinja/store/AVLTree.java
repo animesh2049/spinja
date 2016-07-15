@@ -21,10 +21,13 @@ public class AVLTree extends StateStore {
     long disk_hit_counter;
     long disk_insert_counter;
     long disk_search_counter;
-
+    long max_mem;
+    long prev_used = 0;
     public AVLTree() {
         wrapper = new JDBCWrapper("localhost", 7777, "test", "spinja");
         totalStoredState = 0;
+        Runtime inst = Runtime.getRuntime();
+        max_mem = inst.maxMemory();    
         avl_hit_counter = 0;
         disk_hit_counter = 0;
         disk_search_counter = 0;
@@ -38,11 +41,15 @@ public class AVLTree extends StateStore {
         long mb = 1024 * 1024;
         if (to_swap == 0) {
             Runtime inst = Runtime.getRuntime();
-            long max_mem = inst.maxMemory();
             long mem_used = inst.totalMemory() - inst.freeMemory();
-            if (max_mem - mem_used <= 256 * mb) {
+            if(mem_used - prev_used >= 100*mb){
+                System.err.println("Max Memory now is "+inst.maxMemory());
+                System.err.println("Memory Used is "+(double)mem_used/mb+" mb");
+                prev_used = mem_used;
+            }
+            if (max_mem - mem_used <= 480*mb) {
                 to_swap = 1;
-                System.err.println("Free Memory available is "+(max_mem - mem_used)+" less than 256 MB")
+                System.err.println("Free Memory available is "+(max_mem - mem_used)+" less than 256 MB");
                 System.err.println("So Will Start to Swap Out Now");
             }
         }
@@ -86,7 +93,9 @@ public class AVLTree extends StateStore {
 
     public long getBytes() {
         /* Need to caluclate */
-        return maxnodes * 32;
+        Runtime inst = Runtime.getRuntime();
+        long mem_used = inst.totalMemory() - inst.freeMemory();
+        return mem_used;
     }
 
     public int getStored() {
