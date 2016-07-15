@@ -43,7 +43,6 @@ public class AVLTree extends StateStore {
             Runtime inst = Runtime.getRuntime();
             long mem_used = inst.totalMemory() - inst.freeMemory();
             if(mem_used - prev_used >= 100*mb){
-                System.err.println("Max Memory now is "+inst.maxMemory());
                 System.err.println("Memory Used is "+(double)mem_used/mb+" mb");
                 prev_used = mem_used;
             }
@@ -54,8 +53,9 @@ public class AVLTree extends StateStore {
             }
         }
         if (totalStoredState == 0) {
-            root = insert(root, key);
-            head = tail = root;
+            root = insert(root, key,head);
+            tail = root;
+            head = tail;
             totalStoredState++;
             return 1;
         } else {
@@ -85,7 +85,7 @@ public class AVLTree extends StateStore {
                     totalStoredState++;
                     ret = 1;
                 }
-                root = insert(root, key);
+                root = insert(root, key,head);
                 return ret;
             }
         }
@@ -134,13 +134,17 @@ public class AVLTree extends StateStore {
         return 0;
     }
 
-    private static AVLNode insert(AVLNode root, byte[] val) {
+    private static AVLNode insert(AVLNode root, byte[] val,AVLNode head) {
         if (root == null) {
             root = new AVLNode(val);
-            root.prev = AVLTree.head;
-            AVLTree.head = root;
+            if(head != null){
+                root.next = head;
+                root.prev = null;
+                head.prev  = root;
+                AVLTree.head = root;
+            }
         } else if (Compare_arrays(val, root.data) < 0) {
-            root.left = insert(root.left, val);
+            root.left = insert(root.left, val,head);
             int ltht = height(root.left);
             int rtht = height(root.right);
             if (ltht - rtht == 2)
@@ -148,159 +152,159 @@ public class AVLTree extends StateStore {
                     root = rotateWithLeftChild(root);
                 else
                     root = doubleWithLeftChild(root);
-        } else if (Compare_arrays(val, root.data) > 0) {
-            root.right = insert(root.right, val);
-            int ltht = height(root.left);
-            int rtht = height(root.right);
-            if (rtht - ltht == 2)
-                if (Compare_arrays(val, root.data) > 0)
-                    root = rotateWithRightChild(root);
-                else
-                    root = doubleWithRightChild(root);
-        } else
-            ;
-        int ltht = height(root.left);
-        int rtht = height(root.right);
-        root.height = Math.max(ltht, rtht) + 1;
-        return root;
-    }
-
-
-    private static AVLNode rotateWithLeftChild(AVLNode root) {
-        AVLNode temp = root.left;
-        root.left = temp.right;
-        temp.right = root;
-        root.height = Math.max(height(root.left), height(root.right)) + 1;
-        temp.height = Math.max(height(temp.left), height(temp.right)) + 1;
-        return temp;
-    }
-
-    private static AVLNode rotateWithRightChild(AVLNode root) {
-        AVLNode temp = root.right;
-        root.right = temp.left;
-        temp.left = root;
-        root.height = Math.max(height(root.left), height(root.right)) + 1;
-        temp.height = Math.max(height(temp.left), height(temp.right)) + 1;
-        return temp;
-    }
-
-    private static AVLNode doubleWithLeftChild(AVLNode root) {
-        root.left = rotateWithRightChild(root.left);
-        return rotateWithLeftChild(root);
-    }
-
-    private static AVLNode doubleWithRightChild(AVLNode root) {
-        root.right = rotateWithLeftChild(root.right);
-        return rotateWithRightChild(root);
-    }
-
-    private static void postOrderTraversal(AVLNode root) {
-        if (root != null) {
-            postOrderTraversal(root.left);
-            System.out.println("Value is " + root.data + " and height is " + root.height);
-            postOrderTraversal(root.right);
-        }
-    }
-
-    private static void preOrderTraversal(AVLNode root) {
-        if (root != null) {
-            System.out.println("Value is " + root.data + " and height is " + root.height);
-            preOrderTraversal(root.left);
-            preOrderTraversal(root.right);
-        }
-    }
-
-    public static AVLNode delete(AVLNode root, byte[] val) {
-        AVLNode temp = root;
-        if (root == null)
-            return null;
-        if (root.data.equals(val)) {
-            if (temp.left != null) {
-                temp = temp.left;
-                while (temp.right != null) {
-                    temp = temp.right;
-                }
-                byte[] tempdata = temp.data;
-                root.left = delete(root.left, temp.data);
-                root.data = tempdata;
-                if (root.left == null && root.right == null)
-                    root.height = 1;
+            } else if (Compare_arrays(val, root.data) > 0) {
+                root.right = insert(root.right, val,head);
                 int ltht = height(root.left);
                 int rtht = height(root.right);
-                if (ltht - rtht == -2) {
-                    //System.out.println("Got Imbalance at " + root.data + " and val is  " + val);
-                    if (height(root.right.right) >= height(root.right.left))
+                if (rtht - ltht == 2)
+                    if (Compare_arrays(val, root.data) > 0)
                         root = rotateWithRightChild(root);
                     else
                         root = doubleWithRightChild(root);
-                }
-            } else if (temp.right != null) {
-                temp = temp.right;
-                while (temp.left != null) {
-                    temp = temp.left;
-                }
-                byte[] tempdata = temp.data;
-                root.right = delete(root.right, temp.data);
-                root.data = tempdata;
-                if (root.left == null && root.right == null)
-                    root.height = 1;
+                } else
+                ;
                 int ltht = height(root.left);
                 int rtht = height(root.right);
-                if (rtht - ltht == -2) {
-                    //System.out.println("Got Imbalance at " + root.data + " and val is " + val);
-                    if (height(root.left.right) <= height(root.left.left)) {
-                        root = rotateWithLeftChild(root);
-                    } else
-                        root = doubleWithLeftChild(root);
+                root.height = Math.max(ltht, rtht) + 1;
+                return root;
+            }
+
+
+            private static AVLNode rotateWithLeftChild(AVLNode root) {
+                AVLNode temp = root.left;
+                root.left = temp.right;
+                temp.right = root;
+                root.height = Math.max(height(root.left), height(root.right)) + 1;
+                temp.height = Math.max(height(temp.left), height(temp.right)) + 1;
+                return temp;
+            }
+
+            private static AVLNode rotateWithRightChild(AVLNode root) {
+                AVLNode temp = root.right;
+                root.right = temp.left;
+                temp.left = root;
+                root.height = Math.max(height(root.left), height(root.right)) + 1;
+                temp.height = Math.max(height(temp.left), height(temp.right)) + 1;
+                return temp;
+            }
+
+            private static AVLNode doubleWithLeftChild(AVLNode root) {
+                root.left = rotateWithRightChild(root.left);
+                return rotateWithLeftChild(root);
+            }
+
+            private static AVLNode doubleWithRightChild(AVLNode root) {
+                root.right = rotateWithLeftChild(root.right);
+                return rotateWithRightChild(root);
+            }
+
+            private static void postOrderTraversal(AVLNode root) {
+                if (root != null) {
+                    postOrderTraversal(root.left);
+                    System.out.println("Value is " + root.data + " and height is " + root.height);
+                    postOrderTraversal(root.right);
                 }
-            } else {
-                return null;
             }
-        } else if (Compare_arrays(val, root.data) > 0) {
-            root.right = delete(root.right, val);
-        } else {
-            root.left = delete(root.left, val);
-        }
-        int ltht = height(root.left);
-        int rtht = height(root.right);
-        root.height = ltht > rtht ? ltht + 1 : rtht + 1;
-        return root;
-    }
 
-    private static boolean search(AVLNode root, byte[] val) {
-        boolean found = false;
-        AVLNode tmp = root;
-        while ((tmp != null) & !found) {
-            byte[] temp = tmp.data;
-            if (Compare_arrays(temp, val) > 0) {
-                tmp = tmp.left;
-            } else if (Compare_arrays(temp, val) < 0) {
-                tmp = tmp.right;
-            } else {
-                found = true;
+            private static void preOrderTraversal(AVLNode root) {
+                if (root != null) {
+                    System.out.println("Value is " + root.data + " and height is " + root.height);
+                    preOrderTraversal(root.left);
+                    preOrderTraversal(root.right);
+                }
+            }
+
+            public static AVLNode delete(AVLNode root, byte[] val) {
+                AVLNode temp = root;
+                if (root == null)
+                    return null;
+                if (root.data.equals(val)) {
+                    if (temp.left != null) {
+                        temp = temp.left;
+                        while (temp.right != null) {
+                            temp = temp.right;
+                        }
+                        byte[] tempdata = temp.data;
+                        root.left = delete(root.left, temp.data);
+                        root.data = tempdata;
+                        if (root.left == null && root.right == null)
+                            root.height = 1;
+                        int ltht = height(root.left);
+                        int rtht = height(root.right);
+                        if (ltht - rtht == -2) {
+                    //System.out.println("Got Imbalance at " + root.data + " and val is  " + val);
+                            if (height(root.right.right) >= height(root.right.left))
+                                root = rotateWithRightChild(root);
+                            else
+                                root = doubleWithRightChild(root);
+                        }
+                    } else if (temp.right != null) {
+                        temp = temp.right;
+                        while (temp.left != null) {
+                            temp = temp.left;
+                        }
+                        byte[] tempdata = temp.data;
+                        root.right = delete(root.right, temp.data);
+                        root.data = tempdata;
+                        if (root.left == null && root.right == null)
+                            root.height = 1;
+                        int ltht = height(root.left);
+                        int rtht = height(root.right);
+                        if (rtht - ltht == -2) {
+                    //System.out.println("Got Imbalance at " + root.data + " and val is " + val);
+                            if (height(root.left.right) <= height(root.left.left)) {
+                                root = rotateWithLeftChild(root);
+                            } else
+                            root = doubleWithLeftChild(root);
+                        }
+                    } else {
+                        return null;
+                    }
+                } else if (Compare_arrays(val, root.data) > 0) {
+                    root.right = delete(root.right, val);
+                } else {
+                    root.left = delete(root.left, val);
+                }
+                int ltht = height(root.left);
+                int rtht = height(root.right);
+                root.height = ltht > rtht ? ltht + 1 : rtht + 1;
+                return root;
+            }
+
+            private static boolean search(AVLNode root, byte[] val) {
+                boolean found = false;
+                AVLNode tmp = root;
+                while ((tmp != null) & !found) {
+                    byte[] temp = tmp.data;
+                    if (Compare_arrays(temp, val) > 0) {
+                        tmp = tmp.left;
+                    } else if (Compare_arrays(temp, val) < 0) {
+                        tmp = tmp.right;
+                    } else {
+                        found = true;
+                    }
+                }
+                return found;
             }
         }
-        return found;
-    }
-}
 
-class AVLNode {
-    AVLNode left, right, next, prev;
-    int height;
-    byte[] data;
+        class AVLNode {
+            AVLNode left, right, next, prev;
+            int height;
+            byte[] data;
 
-    public AVLNode() {
-        this.left = this.right = this.next = this.prev = null;
-        this.data = null;
-        this.height = 1;
-    }
+            public AVLNode() {
+                this.left = this.right = this.next = this.prev = null;
+                this.data = null;
+                this.height = 1;
+            }
 
-    public AVLNode(byte[] n) {
-        this.left = this.right = this.next = this.prev = null;
-        this.data = n;
-        this.height = 1;
-    }
-}
+            public AVLNode(byte[] n) {
+                this.left = this.right = this.next = this.prev = null;
+                this.data = n;
+                this.height = 1;
+            }
+        }
 
 /**
  * Created by harry7 on 13/7/16.
