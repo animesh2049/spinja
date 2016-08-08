@@ -44,7 +44,7 @@ import spinja.store.HashTable;
 import spinja.store.ProbingHashTable;
 import spinja.store.SecondaryBTree;
 import spinja.store.StateStore;
-import spinja.store.AVLTree;
+import spinja.store.HashMru;
 
 public class Run extends Thread {
 
@@ -265,7 +265,7 @@ public class Run extends Thread {
             } else if (impl.isSet("SECONDARYBTREE")) {
                 store = new SecondaryBTree();
             } else if (impl.isSet("AVLSQLITE")){
-                store = new AVLTree();
+                store = new HashMru();
             }
             else{
                 store = new ProbingHashTable(hashEntries.getValue());
