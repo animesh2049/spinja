@@ -20,4 +20,4 @@ promela_file=$1
 
 java  -cp spinja.jar   spinja.Compile $promela_file
 javac -cp spinja.jar:. spinja/PanModel.java 
-java  -Xss16m -Xms256m -Xmx1024m -cp spinja.jar:. spinja.PanModel $spinja_options 2>data/normal_output_5X$2 >/dev/null
+java  -Xss16m -Xms256m -Xmx1024m -cp spinja.jar:. spinja.PanModel $spinja_options #2>data/normal_output_5X$2 >/dev/null

@@ -1,6 +1,6 @@
 /bin
 bin
-spinja
+spinja/
 *.diff
 *.model
 *.trail
