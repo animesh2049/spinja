@@ -1,13 +1,15 @@
 package spinja.store;
 
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.client.*;
-import com.mongodb.client.model.CreateCollectionOptions;
+//import com.mongodb.BasicDBObject;
+//import com.mongodb.MongoClient;
+import com.mongodb.client.model.*;
+import static com.mongodb.client.model.Filters.*;
+//import com.mongodb.client.model.CreateCollectionOptions;
 import org.bson.BsonDocument;
 import org.bson.Document;
-
+import com.mongodb.async.client.*;
+import com.mongodb.async.*;
 
 import java.util.HashSet;
 
@@ -59,7 +61,7 @@ public class HashMru extends StateStore {
         if (to_swap == 0) {
             Runtime inst = Runtime.getRuntime();
             long mem_used = inst.totalMemory() - inst.freeMemory();
-            
+
             if (max_mem - mem_used <= 260 * mb) {
                 to_swap = 1;
                 System.err.println("Free Memory available is " + (max_mem - mem_used) + " less than 480 MB");
@@ -143,22 +145,30 @@ class Node {
 }
 
 class JDBCWrapper {
-    MongoCollection coll = null;
-
+    MongoCollection <Document> coll = null;
     public JDBCWrapper(String Server, int port, String database, String collection) {
         try {
-
-            MongoClient mongoClient = new MongoClient(Server, port);
+            MongoClient mongoClient = MongoClients.create("mongodb://" + Server + ":" + port);
             MongoDatabase db = mongoClient.getDatabase(database);
             System.out.println("Connect to database successfully");
             CreateCollectionOptions obj = new CreateCollectionOptions();
             MongoCollection tmp = db.getCollection("people");
-            tmp.drop();
-            db.createCollection("people");
+            tmp.drop(new SingleResultCallback<Void>(){
+              @Override
+              public void onResult(final Void result, final Throwable t) {
+                System.out.println("Deleted");
+              }
+            });
+            db.createCollection("people", new SingleResultCallback<Void>(){
+              @Override
+              public void onResult(final Void result, final Throwable t) {
+                System.out.println("Created");
+              }
+            });
             coll = db.getCollection("people");
-            BasicDBObject obj1 = new BasicDBObject();
-            obj1.append("key", 1);
-            coll.createIndex(obj1);
+            //BasicDBObject obj1 = new BasicDBObject();
+            //obj1.append("key", 1);
+            //coll.createIndex(obj1);
         } catch (Exception e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
@@ -167,14 +177,19 @@ class JDBCWrapper {
     public void put(byte[] key) {
         Document doc = new Document();
         doc.append("key", key);
-        coll.insertOne(doc);
+        coll.insertOne(doc, new SingleResultCallback<Void>() {
+          @Override
+          public void onResult(final Void result, final Throwable t) {
+            System.out.println("Inserted!");
+          }
+        });
     }
 
     public int get(byte[] key) {
         BasicDBObject obj = new BasicDBObject();
         obj.append("key", key);
         MongoCursor curs = coll.find(obj).limit(1).iterator();
-        if (curs.hasNext()) {
+        if (queryResult == null) {
             return 1;
         }
         return 0;
