@@ -9,6 +9,7 @@ import java.io.*;
 import java.util.*;
 
 /** Token Manager. */
+@SuppressWarnings("all")
 public class PromelaTokenManager implements PromelaConstants
 {
 

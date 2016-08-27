@@ -1,18 +1,25 @@
 package spinja.store;
 
 
-//import com.mongodb.BasicDBObject;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCursor;
 //import com.mongodb.MongoClient;
-import com.mongodb.client.model.*;
-import static com.mongodb.client.model.Filters.*;
-//import com.mongodb.client.model.CreateCollectionOptions;
+//import com.mongodb.client.model.*;
+//import static com.mongodb.client.model.Filters.*;
+import com.mongodb.client.model.CreateCollectionOptions;
 import org.bson.BsonDocument;
 import org.bson.Document;
-import com.mongodb.async.client.*;
-import com.mongodb.async.*;
+import com.mongodb.async.client.MongoCollection;
+import com.mongodb.async.client.MongoDatabase;
+import com.mongodb.async.client.MongoCollection;
+import com.mongodb.async.client.MongoClient;
+import com.mongodb.async.client.MongoClients;
+import com.mongodb.async.SingleResultCallback;
+import com.mongodb.async.client.FindIterable;
+//import com.mongodb.async.*;
 
 import java.util.HashSet;
-
+import java.util.concurrent.CompletableFuture;
 /**
  * Created by harry7 on 3/8/16.
  */
@@ -150,8 +157,8 @@ class JDBCWrapper {
         try {
             MongoClient mongoClient = MongoClients.create("mongodb://" + Server + ":" + port);
             MongoDatabase db = mongoClient.getDatabase(database);
-            System.out.println("Connect to database successfully");
             CreateCollectionOptions obj = new CreateCollectionOptions();
+            System.out.println("Connect to database successfully");
             MongoCollection tmp = db.getCollection("people");
             tmp.drop(new SingleResultCallback<Void>(){
               @Override
@@ -186,10 +193,11 @@ class JDBCWrapper {
     }
 
     public int get(byte[] key) {
-        BasicDBObject obj = new BasicDBObject();
+        Document obj = new Document();
         obj.append("key", key);
-        MongoCursor curs = coll.find(obj).limit(1).iterator();
-        if (queryResult == null) {
+        FindIterable<Document> iterable = coll.find(obj).limit(1);
+        //MongoCursor curs = coll.find(obj).;
+        if (iterable != null) {
             return 1;
         }
         return 0;
